@@ -1,57 +1,65 @@
 # AI E-commerce Operations Platform
 
-Production-style e-commerce operations automation platform built around Shopify, n8n, FastAPI, PostgreSQL, and a lightweight operations dashboard.
+Production-style e-commerce operations platform that consolidates and modernizes business automation capabilities originally developed across multiple Shopify and n8n projects.
+
+The platform provides a centralized operations layer using **FastAPI, PostgreSQL, React, Docker, Shopify, and n8n-compatible workflow architecture**.
 
 ## Overview
 
-This project consolidates and productionizes business capabilities originally developed across multiple Shopify automation projects.
-
-The platform is designed to automate:
+The platform is designed to support common e-commerce operations including:
 
 - Order operations
-- Customer communications
-- Fulfillment notifications
+- Customer management
+- Customer event tracking
+- Fulfillment monitoring
 - Inventory monitoring
-- Low-stock alerts
+- Low-stock detection
 - Reorder recommendations
 - Customer segmentation
 - Abandoned checkout recovery
-- Refund and cancellation exception management
-- Daily sales reporting
-- Workflow monitoring
-- Error handling
+- Refund request management
+- Cancellation exception management
+- Workflow execution monitoring
+- Workflow error tracking
+- Automation action tracking
 - Audit logging
+- Operations dashboard visibility
 
 ## Architecture
 
-The platform uses:
-
-- Shopify APIs and webhooks
-- n8n for workflow orchestration
-- FastAPI for custom backend services
-- PostgreSQL for persistent application data
-- Docker for local production-style deployment
-- A lightweight web dashboard for operations visibility
-
-## Project Status
-
-Currently in development.
-
-The original Shopify automation workflows are preserved under:
-
-`source-workflows/`
-
-These workflows are used as functional references during the migration and refactoring process.
-
-## Repository Structure
-
 ```text
-backend/          FastAPI backend
-database/         Database schema and migrations
-docs/             Architecture and technical documentation
-frontend/         Operations dashboard
-n8n/              Production n8n workflows
-scripts/          Development and utility scripts
-tests/            Automated tests
-audit/            Workflow audit tools and reports
-source-workflows/ Original Projects 1–10
+                    E-commerce / Automation Sources
+                               │
+                               ▼
+                    Shopify APIs / Webhooks
+                               │
+                               ▼
+                         n8n Workflows
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │     FastAPI API     │
+                    │                     │
+                    │ Business endpoints  │
+                    │ Validation          │
+                    │ Error handling      │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │     PostgreSQL      │
+                    │                     │
+                    │ Customers           │
+                    │ Products            │
+                    │ Inventory           │
+                    │ Orders              │
+                    │ Events              │
+                    │ Workflow data       │
+                    │ Automation data     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    React Operations Dashboard
+                               │
+                               ▼
+                         Docker Compose
