@@ -1,0 +1,667 @@
+{
+  "name": "Project 3 - Boss-Approved Auto-Restock Automation - Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca3874c8-05a9-46b8-8b48-cfa9b85e8fd4",
+              "name": "action",
+              "value": "={{ JSON.parse($json.body.payload).actions[0].action_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f9a3daba-f943-42ec-8ee1-378d4b1496ca",
+              "name": "decision",
+              "value": "={{ JSON.parse(JSON.parse($json.body.payload).actions[0].value).action }}",
+              "type": "string"
+            },
+            {
+              "id": "58c05193-a0e0-40d2-b99b-4aed4ca615f5",
+              "name": "product",
+              "value": "={{ JSON.parse(JSON.parse($json.body.payload).actions[0].value).product }}",
+              "type": "string"
+            },
+            {
+              "id": "468c7b87-0691-472e-8371-eee17eb6dc7e",
+              "name": "inventoryItemId",
+              "value": "={{ JSON.parse(JSON.parse($json.body.payload).actions[0].value).inventoryItemId }}",
+              "type": "string"
+            },
+            {
+              "id": "e50917fd-53c2-4289-8915-f064c235be12",
+              "name": "locationId",
+              "value": "={{ JSON.parse(JSON.parse($json.body.payload).actions[0].value).locationId }}",
+              "type": "string"
+            },
+            {
+              "id": "39016686-ecc0-4250-b52a-8c341ce975b7",
+              "name": "currentStock",
+              "value": "={{ Number(JSON.parse(JSON.parse($json.body.payload).actions[0].value).currentStock) }}",
+              "type": "number"
+            },
+            {
+              "id": "23325726-8e88-4ced-abcd-292e020a3b9f",
+              "name": "interactionType",
+              "value": "={{ JSON.parse($json.body.payload).type }}",
+              "type": "string"
+            },
+            {
+              "id": "987da715-e22f-47db-b7d9-b95d7f7bfeac",
+              "name": "triggerId",
+              "value": "={{ JSON.parse($json.body.payload).trigger_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1280,
+        -1472
+      ],
+      "id": "1c19bac7-164b-47de-b163-81e1b8a28355",
+      "name": "Parse Slack Approval"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -512,
+        -1216
+      ],
+      "id": "6a376b58-e218-4cae-a892-ed762959a347",
+      "name": "Get Shopify Restock Token"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "=âŒ Restock Rejected  Product: {{ $json.product }} Current Stock: {{ $json.currentStock }} Requested Restock: {{ $json.restockAmount }}  Status: Restock was rejected by the boss.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -528,
+        -832
+      ],
+      "id": "53769b52-63ce-4ecd-a92d-c38278a236ea",
+      "name": "Slack - Inventory Update Rejected",
+      "webhookId": "d038b8c3-0221-4cc7-bc08-52c8c187ff72",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e2a666f8-8c6f-4e04-b8d8-e55d747b0f48",
+              "leftValue": "={{ $json.data.inventoryAdjustQuantities.userErrors.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        336,
+        -1200
+      ],
+      "id": "c38afb50-48fe-4b27-bd9c-05f8ddfdba12",
+      "name": "Check Restock Result"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "=âœ… *Shopify Restock Successful*\n\n*Product:* {{ $('Parse Restock Quantity').item.json.product }}\n\n*Restocked Quantity:* +{{ $('Parse Restock Quantity').item.json.restockAmount }}\n\n*Shopify Inventory Change:* +{{ $('Shopify Inventory Adjustment').item.json.data.inventoryAdjustQuantities.inventoryAdjustmentGroup.changes[0].delta }}\n\n*Status:* Inventory successfully updated in Shopify.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        -1424
+      ],
+      "id": "d8a9d984-ba7c-4663-9e31-fc51be1e0137",
+      "name": "Slack â€” Restock Success",
+      "webhookId": "12a7baf9-c41f-48e6-8220-c72e7dda729c",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "APPROVAL FLOW\n\nBoss receives Slack approval request.\n\nAPPROVE â†’ inventory restock\nREJECT â†’ no inventory change",
+        "height": 240
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1696,
+        -1616
+      ],
+      "id": "4593a190-868c-4e58-a4a9-fe107481cb72",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "ERROR HANDLING\n\nShopify success â†’ Slack success notification\n\nShopify failure â†’ Slack failure notification\n\nThis prevents silent automation failures.",
+        "height": 272,
+        "width": 308
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        -1632
+      ],
+      "id": "6541b619-93b3-4fda-8b73-8a6c88047c5c",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-restock-approval",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1824,
+        -1216
+      ],
+      "id": "8ba90018-fa26-4095-8583-4c6c4dc8c460",
+      "name": "Slack Approval Webhook",
+      "webhookId": "905cde4c-89d6-4c2b-8ae9-005a1cbb4cc7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "de644b37-6f9e-4b23-a79b-95fce2ba0d06",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "approve_restock",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -848,
+        -1024
+      ],
+      "id": "708b2fc4-f8ba-47d8-b655-f2ebf6e6939b",
+      "name": "Check Approval Decision"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "=âŒ *Shopify Auto-Restock Failed*\n\n*Product:* {{ $('Parse Restock Quantity').item.json.product }}\n\n*Requested Restock:* +{{ $('Parse Restock Quantity').item.json.restockAmount }}\n\n*Current Stock:* {{ $('Parse Restock Quantity').item.json.currentStock }}\n\n*Status:* Shopify inventory update failed.\n\n*Error:* {{ $json.data.inventoryAdjustQuantities.userErrors.map(e => e.message).join(', ') || 'Unknown Shopify error' }}\n\n*Action Required:* Please check the Shopify inventory and workflow.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        656,
+        -1056
+      ],
+      "id": "3c71e9b5-78bd-4d79-be1a-bdbfbd9a0e40",
+      "name": "Slack - Restock Failed",
+      "webhookId": "71102dc2-ff35-4acb-aca7-7297aa075bbd",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b2400ae2-ab97-4a97-9a55-96c1d6d5601e",
+                    "leftValue": "={{ $json.interactionType }}",
+                    "rightValue": "block_actions",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "block_actions"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a61cc515-efb1-41d4-b6c7-14035c8dd209",
+                    "leftValue": "={{ $json.interactionType }}",
+                    "rightValue": "view_submission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "view_submission"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        -1200
+      ],
+      "id": "add79ae1-073f-488f-9f65-b321c8aaf127",
+      "name": "Slack Interaction Router"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "REDACTED_SLACK_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"trigger_id\": $('Parse Slack Approval').item.json.triggerId,\n  \"view\": {\n    \"type\": \"modal\",\n    \"callback_id\": \"restock_quantity_modal\",\n    \"title\": {\n      \"type\": \"plain_text\",\n      \"text\": \"Restock Inventory\"\n    },\n    \"submit\": {\n      \"type\": \"plain_text\",\n      \"text\": \"Approve Restock\"\n    },\n    \"close\": {\n      \"type\": \"plain_text\",\n      \"text\": \"Cancel\"\n    },\n    \"private_metadata\": JSON.stringify({\n      \"product\": $json.product,\n      \"inventoryItemId\": $json.inventoryItemId,\n      \"locationId\": $json.locationId,\n      \"currentStock\": $json.currentStock\n    }),\n    \"blocks\": [\n      {\n        \"type\": \"section\",\n        \"text\": {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Product:* \" + $json.product + \"\\n*Current Stock:* \" + $json.currentStock\n        }\n      },\n      {\n        \"type\": \"input\",\n        \"block_id\": \"restock_quantity_block\",\n        \"label\": {\n          \"type\": \"plain_text\",\n          \"text\": \"Restock Quantity\"\n        },\n        \"element\": {\n          \"type\": \"plain_text_input\",\n          \"action_id\": \"restock_quantity\",\n          \"placeholder\": {\n            \"type\": \"plain_text\",\n            \"text\": \"Enter quantity, e.g. 20\"\n          }\n        }\n      }\n    ]\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -880,
+        -1584
+      ],
+      "id": "bd2108e3-9df1-4b63-ad5c-2e5bbc5ddea5",
+      "name": "Open Restock Quantity Modal"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d263236d-d1f0-401b-be6a-cced56b9c40c",
+              "name": "decision",
+              "value": "={{ \"approve_restock\" }}",
+              "type": "string"
+            },
+            {
+              "id": "fc323563-bcfe-455e-a1ab-523891892d98",
+              "name": "product",
+              "value": "={{ JSON.parse(JSON.parse($('Slack Approval Webhook').item.json.body.payload).view.private_metadata).product }}",
+              "type": "string"
+            },
+            {
+              "id": "2ec9d3a7-d823-42a3-8cc5-f37c637b6bb3",
+              "name": "inventoryItemId",
+              "value": "={{ JSON.parse(JSON.parse($('Slack Approval Webhook').item.json.body.payload).view.private_metadata).inventoryItemId }}",
+              "type": "string"
+            },
+            {
+              "id": "d40c55b1-c5b7-431a-828c-f1e0243c4a9c",
+              "name": "locationId",
+              "value": "={{ JSON.parse(JSON.parse($('Slack Approval Webhook').item.json.body.payload).view.private_metadata).locationId }}",
+              "type": "string"
+            },
+            {
+              "id": "07dd1c90-cd0e-43b3-8b42-dcbaefbac89d",
+              "name": "currentStock",
+              "value": "={{ Number(JSON.parse(JSON.parse($('Slack Approval Webhook').item.json.body.payload).view.private_metadata).currentStock) }}",
+              "type": "string"
+            },
+            {
+              "id": "85f579ef-af85-43a9-9a24-36cc8eb9ac52",
+              "name": "restockAmount",
+              "value": "={{ Number(JSON.parse($('Slack Approval Webhook').item.json.body.payload).view.state.values.restock_quantity_block.restock_quantity.value) }}",
+              "type": "string"
+            },
+            {
+              "id": "f8f28602-223a-4263-9ff6-f10c93520a55",
+              "name": "interactionType",
+              "value": "={{ JSON.parse($('Slack Approval Webhook').item.json.body.payload).type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1136,
+        -1024
+      ],
+      "id": "288dc3c5-ad71-4905-a525-83c4e02d8310",
+      "name": "Parse Restock Quantity"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify Restock Token').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!, $idempotencyKey: String!) { inventoryAdjustQuantities(input: $input) @idempotent(key: $idempotencyKey) { userErrors { field message } inventoryAdjustmentGroup { id createdAt reason referenceDocumentUri changes { name delta } } } }\",\n  \"variables\": {\n    \"input\": {\n      \"reason\": \"correction\",\n      \"name\": \"available\",\n      \"referenceDocumentUri\": \"n8n://shopify-restock\",\n      \"changes\": [\n        {\n          \"inventoryItemId\": \"{{ $('Parse Restock Quantity').item.json.inventoryItemId }}\",\n          \"locationId\": \"{{ $('Parse Restock Quantity').item.json.locationId }}\",\n          \"changeFromQuantity\": {{ Number($('Get Current Inventory').item.json.data.inventoryItem.inventoryLevel.quantities[0].quantity) }},\n          \"delta\": {{ Number($('Parse Restock Quantity').item.json.restockAmount) }}\n        }\n      ]\n    },\n    \"idempotencyKey\": \"{{ $execution.id }}-{{ $now.toMillis() }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        -1216
+      ],
+      "id": "136f2648-85c8-4795-a4d6-9a5d2029e3eb",
+      "name": "Shopify Inventory Adjustment"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify Restock Token').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"query GetInventoryLevel($inventoryItemId: ID!, $locationId: ID!) { inventoryItem(id: $inventoryItemId) { inventoryLevel(locationId: $locationId) { quantities(names: [\\\"available\\\"]) { name quantity } } } }\",\n  \"variables\": {\n    \"inventoryItemId\": \"{{ $('Parse Restock Quantity').item.json.inventoryItemId }}\",\n    \"locationId\": \"{{ $('Parse Restock Quantity').item.json.locationId }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -240,
+        -1216
+      ],
+      "id": "b7f7111c-00ee-4f99-9e74-50a4ecf2f83f",
+      "name": "Get Current Inventory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Slack Approval": {
+      "main": [
+        [
+          {
+            "node": "Open Restock Quantity Modal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack Interaction Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Restock Token": {
+      "main": [
+        [
+          {
+            "node": "Get Current Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Restock Result": {
+      "main": [
+        [
+          {
+            "node": "Slack â€” Restock Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Restock Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Slack Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Approval Decision": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Restock Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Inventory Update Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Interaction Router": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Parse Restock Quantity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Restock Quantity": {
+      "main": [
+        [
+          {
+            "node": "Check Approval Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open Restock Quantity Modal": {
+      "main": [
+        []
+      ]
+    },
+    "Shopify Inventory Adjustment": {
+      "main": [
+        [
+          {
+            "node": "Check Restock Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Inventory": {
+      "main": [
+        [
+          {
+            "node": "Shopify Inventory Adjustment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "86949665-b203-4767-ba17-f6ad92ca5e14",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "kOXKNvYUCcaF8wOO",
+  "tags": [
+    {
+      "updatedAt": "2026-08-14T02:36:55.156Z",
+      "createdAt": "2026-08-14T02:36:55.156Z",
+      "id": "v6MtAI1TsYGsLatb",
+      "name": "3.2"
+    }
+  ]
+}

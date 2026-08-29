@@ -1,0 +1,571 @@
+{
+  "name": "Project 6 - Shopify Fulfillment Shipping Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-fulfillment",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        -64
+      ],
+      "id": "da9b6604-a64c-4f25-940a-d1163109c743",
+      "name": "Webhook",
+      "webhookId": "b83d1ae7-f19a-4662-bcaa-9b56bd445094"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0ee3b19c-b35f-4587-84c5-5b4990f41c9e",
+              "name": "fulfillment_id",
+              "value": "={{ $json.body.id }}",
+              "type": "string"
+            },
+            {
+              "id": "abd58e90-5b9d-48ba-9cc6-7a1f68c5a5eb",
+              "name": "order_id",
+              "value": "={{ $json.body.order_id }}",
+              "type": "string"
+            },
+            {
+              "id": "9789e445-9325-48d2-8ad1-4c7f1fbaedcb",
+              "name": "order_number",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "208aa87e-8303-446d-9728-f136817a172d",
+              "name": "fulfillment_status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "4d8e64b5-c4a7-4a70-a2d3-2a295c2fa9b2",
+              "name": "tracking_number",
+              "value": "={{ $json.body.tracking_number }}",
+              "type": "string"
+            },
+            {
+              "id": "72ed5d45-af1a-4bb8-9eda-3e981685ee18",
+              "name": "tracking_url",
+              "value": "={{ $json.body.tracking_url }}",
+              "type": "string"
+            },
+            {
+              "id": "7b40ff8c-4182-46dd-8a2e-c8a83eaf9b92",
+              "name": "tracking_company",
+              "value": "={{ $json.body.tracking_company }}",
+              "type": "string"
+            },
+            {
+              "id": "14aa3dc9-e8ff-408a-a2a9-cfa69307bf32",
+              "name": "customer_email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "5bfe6fa7-0dc2-47c8-a108-da174e46e29a",
+              "name": "shopify_event_id",
+              "value": "={{ $json.headers[\"x-shopify-event-id\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "06221f13-2309-4b52-b1f6-65cfd41effe0",
+              "name": "shopify_webhook_id",
+              "value": "={{ $json.headers[\"x-shopify-webhook-id\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "31522482-6224-4b3d-bb3e-e8a9041b03d2",
+              "name": "shopify_topic",
+              "value": "={{ $json.headers[\"x-shopify-topic\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -224,
+        -64
+      ],
+      "id": "9862ad58-a2c4-437c-b632-6f6003d274b9",
+      "name": "Prepare Fulfillment Data"
+    },
+    {
+      "parameters": {
+        "url": "=https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/orders/{{ $('Prepare Fulfillment Data').item.json.order_id }}.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify Access Token').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        -64
+      ],
+      "id": "de93ff4e-2780-49ca-98b1-d4fa8ce11c68",
+      "name": "Get Shopify Order"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "beed270d-b6df-4e09-8b61-85e678c1d302",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d6033afa-96c6-41fc-b835-5175a1a63345",
+              "name": "customer_first_name",
+              "value": "={{ $json.order.customer.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d79116bc-6620-4493-bceb-4561fcea4aa2",
+              "name": "customer_last_name",
+              "value": "={{ $json.order.customer.last_name }}",
+              "type": "string"
+            },
+            {
+              "id": "6966a866-326c-44c6-b1da-300ef38c7af9",
+              "name": "customer_phone",
+              "value": "={{ $json.order.customer.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "30099003-91c8-478f-bd59-f7ee1b4296f4",
+              "name": "customer_email",
+              "value": "={{ $json.order.customer.email }}",
+              "type": "string"
+            },
+            {
+              "id": "a6b14782-9107-4294-ad0b-f4c05961027c",
+              "name": "order_id",
+              "value": "={{ $json.order.id }}",
+              "type": "string"
+            },
+            {
+              "id": "058a7dde-d766-4dce-9f43-cf81e2df1657",
+              "name": "order_number",
+              "value": "={{ $json.order.name }}",
+              "type": "string"
+            },
+            {
+              "id": "54f56cd3-c129-458b-8aa9-c63616a2c01f",
+              "name": "fulfillment_status",
+              "value": "={{ $json.order.fulfillments[0].status }}",
+              "type": "string"
+            },
+            {
+              "id": "e4e4d238-4003-416a-9b49-459842a02eb3",
+              "name": "tracking_number",
+              "value": "={{ $json.order.fulfillments[0].tracking_number }}",
+              "type": "string"
+            },
+            {
+              "id": "629a2bff-ac8f-4f64-8ac0-3e85d5087614",
+              "name": "tracking_company",
+              "value": "={{ $json.order.fulfillments[0].tracking_company }}",
+              "type": "string"
+            },
+            {
+              "id": "d417c0ba-412f-478a-984e-3cdcba6bbcc9",
+              "name": "tracking_url",
+              "value": "={{ $json.order.fulfillments[0].tracking_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        432,
+        -64
+      ],
+      "id": "85d3bb73-ea43-41b6-999f-d040b3884177",
+      "name": "Extract Customer Data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -416,
+        192
+      ],
+      "id": "3ccc8e3d-5e4a-4038-b2f7-c6f41a175b56",
+      "name": "Merge Fulfillment + Customer Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6794b218-5034-4252-85d4-5a0536e36308",
+              "leftValue": "={{ $json.tracking_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -192,
+        304
+      ],
+      "id": "cde053d6-e89a-4ced-a795-56a21df3f180",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{  \"âš ï¸ Shopify Fulfillment Created â€” Tracking Missing\\n\\n\" + \"Order: \" + $json.order_number + \"\\n\" + \"Customer: \" + $json.customer_first_name + \" \" + $json.customer_last_name + \"\\n\" + \"Email: \" + $json.customer_email + \"\\n\" + \"Fulfillment ID: \" + $json.fulfillment_id + \"\\n\" + \"Status: \" + $json.fulfillment_status + \"\\n\\n\" + \"Tracking information was not provided by Shopify.\\n\" + \"WhatsApp shipping notification was NOT sent.\" }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        448
+      ],
+      "id": "eff7aee6-f889-4532-ab29-c67d0a80d1dc",
+      "name": "Send a message",
+      "webhookId": "d28f73b4-d2d7-472f-b778-3c8a9775f648",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e8095a8-8e94-4805-b30c-c2936f540994",
+              "name": "whatsapp_message",
+              "value": "={{  \"Hello \" + $json.customer_first_name + \",\\n\\n\" + \"Your order \" + $json.order_number + \" has been shipped! ðŸ“¦\\n\\n\" + \"Tracking Company: \" + $json.tracking_company + \"\\n\" + \"Tracking Number: \" + $json.tracking_number + \"\\n\\n\" + \"Track your order here:\\n\" + $json.tracking_url + \"\\n\\n\" + \"Thank you for shopping with us!\" }}",
+              "type": "string"
+            },
+            {
+              "id": "9ae5a376-82dd-469d-8f1d-5d94024e0593",
+              "name": "customer_phone",
+              "value": "={{ $json.customer_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "b9f42322-9e95-463d-9ee5-9974769344f5",
+              "name": "order_number",
+              "value": "={{ $json.order_number }}",
+              "type": "string"
+            },
+            {
+              "id": "014ac610-eb24-4856-8eb5-7d4f81a656ad",
+              "name": "tracking_number",
+              "value": "={{ $json.tracking_number }}",
+              "type": "string"
+            },
+            {
+              "id": "bbf2d0d5-6351-47cf-a389-2499cc2ab8ce",
+              "name": "tracking_company",
+              "value": "={{ $json.tracking_company }}",
+              "type": "string"
+            },
+            {
+              "id": "d2d1d93c-4521-4017-a02d-210ea1c5c2b6",
+              "name": "tracking_url",
+              "value": "={{ $json.tracking_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        32,
+        176
+      ],
+      "id": "58565055-c153-4b6a-b9cc-bd774519be37",
+      "name": "Build Shipping Message"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/1303412826181918/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAOxZBgFT34MBSbBoKoDAkoJEsSuVMtrZCKYAY4L1IWIoGLB5NtVNCkynIIsSZBAfhy5Y7FXnly9YMzpvb5nzyX9q3ydeZA8OK5qI5BZAU47NDRtS8tbTJdqrZCmmZAkSRZAxF18okagSgmpIQ3gN11jEsBeLDZBCiAY9MfjY7X6U8RWJZByMs4ZBQGncTBZBcccasYrTV5SEFJNaZCIaovF1zmRXmBcH0DKoPXBkwKjSkugoCpI4Pkbd951JIi75XvZASKjfzPx3EwNIq5t0U5w49lo5Rjw9FR31V2S8bnTQZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"messaging_product\": \"whatsapp\",\n    \"to\": $json.customer_phone,\n    \"type\": \"text\",\n    \"text\": {\n      \"body\": $json.whatsapp_message\n    }\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        256,
+        176
+      ],
+      "id": "f8c3495d-3194-4542-8f59-7334bfac8aec",
+      "name": "Send WhatsApp Shipping Notification",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "jzaauodRHETOnMCi",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=ðŸšš Shopify Shipping Notification Sent\n\nOrder: {{ $('Merge Fulfillment + Customer Data').item.json.order_number }}\nCustomer: {{ $('Merge Fulfillment + Customer Data').item.json.customer_first_name }} {{ $('Merge Fulfillment + Customer Data').item.json.customer_last_name }}\nPhone: {{ $('Merge Fulfillment + Customer Data').item.json.customer_phone }}\n\nCarrier: {{ $('Merge Fulfillment + Customer Data').item.json.tracking_company || 'Not provided' }}\nTracking Number: {{ $('Merge Fulfillment + Customer Data').item.json.tracking_number || 'Not provided' }}\nTracking URL: {{ $('Merge Fulfillment + Customer Data').item.json.tracking_url || 'Not provided' }}\n\nWhatsApp notification was sent successfully.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        176
+      ],
+      "id": "2fdd4cae-dfc1-4aa3-82f8-e1ca2ce1d384",
+      "name": "Slack Success Notification",
+      "webhookId": "4666d458-7a9f-4372-84b0-6a8147a25a16",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Fulfillment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Fulfillment Data": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Fulfillment + Customer Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Order": {
+      "main": [
+        [
+          {
+            "node": "Extract Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Fulfillment + Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Fulfillment + Customer Data": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Build Shipping Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Shipping Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Shipping Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Shipping Notification": {
+      "main": [
+        [
+          {
+            "node": "Slack Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "78fd8cb0-8429-4a03-8929-0a8c450ac4c4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "DBu8OysSlERh9eOE",
+  "tags": []
+}

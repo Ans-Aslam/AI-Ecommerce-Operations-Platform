@@ -1,0 +1,1044 @@
+{
+  "name": "Shopify Abandoned Checkout Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-abandoned-checkout",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        -64
+      ],
+      "id": "b4934efa-cc75-466d-b53a-3206c61fa0fd",
+      "name": "Shopify Checkout Webhook",
+      "webhookId": "9368cf9b-237d-402b-b217-5c45e77bdde8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "175852a7-30e3-4d47-825b-0e3ab21253bd",
+              "name": "event_id",
+              "value": "={{ $json.headers[\"x-shopify-event-id\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "eba07c8c-9a8d-4eae-99d8-0844f2e44584",
+              "name": "webhook_id",
+              "value": "={{ $json.headers[\"x-shopify-webhook-id\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "4cea2149-7aec-4471-8a5d-9091101738b0",
+              "name": "shop_domain",
+              "value": "={{ $json.headers[\"x-shopify-shop-domain\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "c8c07293-46de-4420-a741-e793235a4eea",
+              "name": "checkout_token",
+              "value": "={{ $json.body.token }}",
+              "type": "string"
+            },
+            {
+              "id": "021600da-6a81-4759-8733-38503c35223e",
+              "name": "cart_token",
+              "value": "={{ $json.body.cart_token }}",
+              "type": "string"
+            },
+            {
+              "id": "073421ee-c5a0-48d8-a6a2-052c6e3b67e7",
+              "name": "checkout_name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "05b9ea60-116b-4f46-812b-aa21f21b072e",
+              "name": "customer_email",
+              "value": "={{ $json.body.email || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "26fe4167-05f9-42d7-8056-aa1887c771d3",
+              "name": "customer_phone",
+              "value": "={{ $json.body.phone || $json.body.sms_marketing_phone || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a0dd853f-29ed-41df-8953-b153ed85198c",
+              "name": "customer_first_name",
+              "value": "={{ $json.body.shipping_address.first_name || 'there' }}",
+              "type": "string"
+            },
+            {
+              "id": "d88d99bb-7731-4a7b-a723-52d64dca86b6",
+              "name": "recovery_url",
+              "value": "={{ $json.body.abandoned_checkout_url }}",
+              "type": "string"
+            },
+            {
+              "id": "c58a3c61-e8e8-4bae-86c3-b1a3680a8c5b",
+              "name": "total_amount",
+              "value": "={{ $json.body.total_price }}",
+              "type": "string"
+            },
+            {
+              "id": "9e35abf2-3fda-4a33-8cd6-fb94aba24d3e",
+              "name": "currency",
+              "value": "={{ $json.body.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "d2ab2e0a-5c60-40bb-af28-cfecbba5fdef",
+              "name": "subtotal",
+              "value": "={{ $json.body.subtotal_price }}",
+              "type": "string"
+            },
+            {
+              "id": "ee033552-08cf-42a1-a623-1359f3107032",
+              "name": "total_discounts",
+              "value": "={{ $json.body.total_discounts }}",
+              "type": "string"
+            },
+            {
+              "id": "36682c4b-3ec5-4cb6-b8db-29850ed5b93b",
+              "name": "line_items_count",
+              "value": "={{ $json.body.line_items.length }}",
+              "type": "string"
+            },
+            {
+              "id": "428bdda1-137f-44f0-aec0-016e73bffd21",
+              "name": "created_at",
+              "value": "={{ $json.body.created_at }}",
+              "type": "string"
+            },
+            {
+              "id": "e5c488e4-9207-4fa5-91b6-f4df995aad13",
+              "name": "updated_at",
+              "value": "={{ $json.body.updated_at }}",
+              "type": "string"
+            },
+            {
+              "id": "1d0835b8-b43c-48d6-a97c-ed29ee946c50",
+              "name": "completed_at",
+              "value": "={{ $json.body.completed_at || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "054a24e5-bdae-4915-b3a6-88ba0275c015",
+              "name": "status",
+              "value": "pending",
+              "type": "string"
+            },
+            {
+              "id": "0ccd758a-c836-401c-95c8-235b61a40637",
+              "name": "recovery_eligible",
+              "value": "={{ !!($json.body.email || $json.body.phone || $json.body.sms_marketing_phone) }}",
+              "type": "string"
+            },
+            {
+              "id": "e3e688ed-b8ba-42a5-b919-af40847da6f1",
+              "name": "product_name",
+              "value": "={{ $('Shopify Checkout Webhook').item.json.body.line_items[0].title }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -672,
+        -64
+      ],
+      "id": "11a7360c-31a8-4db0-b8ae-b05527c48321",
+      "name": "Prepare Abandoned Checkout Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "46c66fb1-2c36-42d9-bdae-8582287f766b",
+              "leftValue": "={{ $json.data.orders.nodes.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -464,
+        208
+      ],
+      "id": "827c4a1d-49bd-4dd6-b401-9f54eba544ea",
+      "name": "Order Exists?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"query CheckOrder($query: String!) { orders(first: 1, query: $query) { nodes { id name createdAt } } }\",\n  \"variables\": {\n    \"query\": \"cart_token:{{ $json.cart_token }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        496,
+        -112
+      ],
+      "id": "66ca7d37-3502-4e96-bc1b-8d8f999138a5",
+      "name": "Check Shopify Order"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        -336
+      ],
+      "id": "799ab5f3-d551-48d3-bd48-ab52edff807a",
+      "name": "Merge Checkout Data + Access Token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        -128
+      ],
+      "id": "b7f710a6-2696-4eb0-aa98-28db509dc037",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -272
+      ],
+      "id": "90253b92-7267-498b-bbdb-797d566cba4e",
+      "name": "Wait Before Recovery Check",
+      "webhookId": "a895be8a-a7a0-43a8-9995-21fe32a63605"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "SymSOWfPVmCwqnQH",
+          "mode": "list",
+          "cachedResultName": "shopify_abandoned_checkouts",
+          "cachedResultUrl": "/projects/6U41Bx0WYYwB0Auo/datatables/SymSOWfPVmCwqnQH"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "webhook_id": "={{ $json.event_id }}",
+            "shop_domain": "={{ $json.shop_domain }}",
+            "checkout_token": "={{ $json.checkout_token }}",
+            "cart_token": "={{ $json.cart_token }}",
+            "checkout_name": "={{ $json.cart_token }}",
+            "customer_email": "={{ $json.customer_email }}",
+            "customer_phone": "={{ $json.customer_phone }}",
+            "customer_first_name": "={{ $json.customer_first_name }}",
+            "recovery_url": "={{ $json.recovery_url }}",
+            "total_amount": "={{ $json.total_amount }}",
+            "currency": "={{ $json.currency }}",
+            "subtotal": "={{ $json.subtotal }}",
+            "total_discounts": "={{ $json.total_discounts }}",
+            "line_items_count": "={{ $json.line_items_count }}",
+            "created_at": "={{ $json.created_at }}",
+            "updated_at": "={{ $json.updated_at }}",
+            "completed_at": "={{ $json.completed_at }}",
+            "status": "={{ $json.status }}",
+            "recovery_eligible": "={{ $json.recovery_eligible }}",
+            "product_name": "={{ $json.product_name }}"
+          },
+          "matchingColumns": [
+            "Columns"
+          ],
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "webhook_id",
+              "displayName": "webhook_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "shop_domain",
+              "displayName": "shop_domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "checkout_token",
+              "displayName": "checkout_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "cart_token",
+              "displayName": "cart_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "checkout_name",
+              "displayName": "checkout_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "customer_email",
+              "displayName": "customer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "customer_phone",
+              "displayName": "customer_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "customer_first_name",
+              "displayName": "customer_first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recovery_url",
+              "displayName": "recovery_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "total_amount",
+              "displayName": "total_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "total_discounts",
+              "displayName": "total_discounts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "line_items_count",
+              "displayName": "line_items_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recovery_eligible",
+              "displayName": "recovery_eligible",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        -272
+      ],
+      "id": "2f420993-3cd7-4acb-9613-bf48ce574a80",
+      "name": "Save Abandoned Checkout"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e4d65659-a2a6-44d8-8ad5-c09de69b86fb",
+              "leftValue": "={{ $('Merge Checkout Data + Access Token').item.json.recovery_eligible.toBoolean() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        384
+      ],
+      "id": "1807d779-6b79-4897-ae16-75b0eb07bcf5",
+      "name": "Recovery Eligible?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f83405e7-a6a4-41e4-999a-570b51f559c4",
+              "name": "customer_name",
+              "value": "={{ $('Merge Checkout Data + Access Token').item.json.customer_first_name || 'there' }}",
+              "type": "string"
+            },
+            {
+              "id": "5bd4b1e4-cb7b-4205-9252-5de46f56cc6a",
+              "name": "product_name",
+              "value": "={{ $('Merge Checkout Data + Access Token').item.json.product_name }}",
+              "type": "string"
+            },
+            {
+              "id": "f214685b-774b-4532-884b-88c41e4de17e",
+              "name": "total_price",
+              "value": "={{ $('Merge Checkout Data + Access Token').item.json.total_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "914034bd-5f7b-47c7-894b-46f7ea529531",
+              "name": "currency",
+              "value": "={{ $('Merge Checkout Data + Access Token').item.json.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "04b9f60d-1cd1-4da7-806e-ea51cb81fc07",
+              "name": "recovery_url",
+              "value": "={{ $('Merge Checkout Data + Access Token').item.json.recovery_url }}",
+              "type": "string"
+            },
+            {
+              "id": "795d6e6d-856c-4da2-909a-bfdbaec29dcc",
+              "name": "recovery_message",
+              "value": "={{\n'Hi ' +\n($('Merge Checkout Data + Access Token').item.json.customer_first_name || 'there') +\n', you left ' +\n$('Merge Checkout Data + Access Token').item.json.product_name +\n' in your cart. Your cart is still waiting for you. Complete your order here: ' +\n$('Merge Checkout Data + Access Token').item.json.recovery_url\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        112,
+        160
+      ],
+      "id": "fddbc7f3-4f91-4d92-b163-6b909896b986",
+      "name": "Build Recovery Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "68fd92b3-682a-4e47-9acd-fd72b9d266e6",
+              "leftValue": "={{ $('Merge Checkout Data + Access Token').item.json.customer_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        416
+      ],
+      "id": "332ba6db-d299-4b3f-96fb-f8a7e6f25c2d",
+      "name": "Customer Contact Available?"
+    },
+    {
+      "parameters": {
+        "fromEmail": "ans.aiwork1@gmail.com",
+        "toEmail": "={{ $('Merge Checkout Data + Access Token').item.json.customer_email }}",
+        "subject": "You left something in your cart",
+        "html": "=<h2>Your cart is waiting for you</h2>\n\n<p>Hi {{ $('Build Recovery Message').item.json.customer_name }},</p>\n\n<p>You left <strong>{{ $('Build Recovery Message').item.json.product_name }}</strong> in your cart.</p>\n\n<p>Your cart is still waiting for you.</p>\n\n<p>\n  <strong>Total:</strong>\n  {{ $('Build Recovery Message').item.json.total_price }}\n  {{ $('Build Recovery Message').item.json.currency }}\n</p>\n\n<p>\n  <a href=\"{{ $('Build Recovery Message').item.json.recovery_url }}\">\n    Complete your order\n  </a>\n</p>\n\n<p>We hope to see you back soon!</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        240
+      ],
+      "id": "b2f79709-d8e4-4a96-9fc4-e3e6172a195d",
+      "name": "Send an Email",
+      "webhookId": "e89a166e-757b-4429-a9eb-5206edecda34",
+      "credentials": {
+        "smtp": {
+          "id": "UvGStnpbOkwqZxeN",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        784,
+        432
+      ],
+      "id": "5dd1c403-6c38-4eb1-9db7-3b9e2a1d7b37",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        0,
+        416
+      ],
+      "id": "5eab601a-645b-4906-8f71-d9b306d4bae8",
+      "name": "Stop - Recovery Not Eligible"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5aa89389-7693-4d86-82f9-2503d2d10738",
+              "name": "status",
+              "value": "recovered",
+              "type": "string"
+            },
+            {
+              "id": "742e0391-1e83-4b3c-b451-f38b5ba4f136",
+              "name": "message",
+              "value": "Customer completed the order. Recovery email not sent.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -208,
+        128
+      ],
+      "id": "8ed0fbff-02aa-45ea-ab70-e5ee42d33713",
+      "name": "Mark as Recovered"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "=ABANDONED CHECKOUT RECOVERY\n\nCustomer: {{ $('Build Recovery Message').item.json.customer_name }}\nProduct: {{ $('Build Recovery Message').item.json.product_name }}\nTotal: {{ $('Build Recovery Message').item.json.total_price }} {{ $('Build Recovery Message').item.json.currency }}\n\nRecovery email: SENT",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        96
+      ],
+      "id": "93fe9f70-3eb5-4cf2-8ffc-9fdb3215d7cc",
+      "name": "Slack - Recovery Email Sent",
+      "webhookId": "b8a5d454-06b9-40fe-ba06-933d42777fb3",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "ðŸ›’ SHOPIFY ABANDONED CHECKOUT RECOVERY\n\nAutomatically detects abandoned checkouts,\nwaits before recovery, verifies whether the\ncustomer completed the order, and sends a\npersonalized recovery email when eligible.\n\nGoal:\nRecover potentially lost sales automatically\nwhile preventing recovery emails for completed\norders or unavailable customer contacts.",
+        "height": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2544,
+        -368
+      ],
+      "id": "81253f86-3bf0-45d3-8daf-b7a18a60b521",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "ðŸ”„ WORKFLOW ARCHITECTURE\n\nShopify Checkout Webhook\n        â†“\nPrepare Checkout Data\n        â†“\nSave Abandoned Checkout\n        â†“\nWait Before Recovery Check\n        â†“\nGet Shopify Access Token\n        â†“\nCheck Shopify Order\n        â†“\nOrder Exists?\n   â”Œâ”€â”€â”€â”€â”´â”€â”€â”€â”€â”\n  YES       NO\n   â†“         â†“\nMark      Recovery\nRecovered  Eligible?\n             â†“\n       Build Recovery Message\n             â†“\n       Customer Contact?\n          â”Œâ”€â”€â”´â”€â”€â”\n         YES    NO\n          â†“      â†“\n      Send Email  Stop\n          â†“\n      Slack Alert",
+        "height": 736,
+        "width": 288,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2288,
+        -368
+      ],
+      "id": "9b2f1d9d-230f-48c0-ae15-499250433f21",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "ðŸ§  BUSINESS LOGIC\n\n1. Receive abandoned checkout.\n2. Store checkout information.\n3. Wait before attempting recovery.\n4. Check Shopify for a completed order.\n5. If order exists â†’ mark checkout recovered.\n6. If no order â†’ check recovery eligibility.\n7. Build personalized recovery message.\n8. Verify customer contact availability.\n9. Send recovery email only when safe.",
+        "height": 480,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1984,
+        -368
+      ],
+      "id": "d31d4c5f-0307-4a6f-b98e-2a1ce84f1c75",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "ðŸ›¡ï¸ SAFETY & ERROR HANDLING\n\nâ€¢ Prevent recovery after completed order\nâ€¢ Recovery eligibility validation\nâ€¢ Customer contact validation\nâ€¢ Duplicate/event tracking\nâ€¢ Separate error-handler workflow\nâ€¢ Slack automation-error alerts\nâ€¢ No-operation safety branches\nâ€¢ Shopify API response validation\n\nPrinciple:\nNever send a recovery message when the\ncustomer has already completed the order\nor valid contact information is unavailable.",
+        "height": 544,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1728,
+        -368
+      ],
+      "id": "2dab8096-2c5a-4582-966d-f2690d481aa3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "ðŸ§ª TESTING COMPLETED\n\nâœ… Normal abandoned checkout\nâœ… Recovery email generated\nâœ… Customer + product data mapped\nâœ… Order Exists = TRUE\nâœ… Order Exists = FALSE\nâœ… Recovery Eligible = TRUE\nâœ… Recovery Eligible = FALSE\nâœ… Customer Contact = TRUE\nâœ… Customer Contact = FALSE\nâœ… Recovery email received\nâœ… Slack recovery notification\nâœ… Error-handler workflow\nâœ… Slack automation-error alert\n\nResult: END-TO-END TEST PASSED",
+        "height": 672,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        -368
+      ],
+      "id": "fe130e3b-39e9-4c0c-b9e7-31cf725fc53b",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Shopify Checkout Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Abandoned Checkout Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Abandoned Checkout Data": {
+      "main": [
+        [
+          {
+            "node": "Save Abandoned Checkout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Shopify Order": {
+      "main": [
+        [
+          {
+            "node": "Order Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Checkout Data + Access Token": {
+      "main": [
+        [
+          {
+            "node": "Check Shopify Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Merge Checkout Data + Access Token",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait Before Recovery Check": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Checkout Data + Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Abandoned Checkout": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Recovery Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Exists?": {
+      "main": [
+        [
+          {
+            "node": "Mark as Recovered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Recovery Eligible?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recovery Eligible?": {
+      "main": [
+        [
+          {
+            "node": "Build Recovery Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop - Recovery Not Eligible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Recovery Message": {
+      "main": [
+        [
+          {
+            "node": "Customer Contact Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Contact Available?": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Slack - Recovery Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "At0uclez3PJtsur6",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "6877301d-3e36-4062-8f96-f5b0ea1f94d7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "7O2QwIFZT97qzXlz",
+  "tags": []
+}

@@ -1,0 +1,543 @@
+{
+  "name": "Project 8 - Shopify Daily Sales Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        -80
+      ],
+      "id": "7a74483c-d000-45a8-8307-2fd64a6c9edd",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -352,
+        -80
+      ],
+      "id": "7f6b921f-895f-423b-9956-8fcc597078f2",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $node[\"Get Shopify Access Token\"].json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  query: `query GetOrders($query: String!, $cursor: String) {\n    orders(\n      first: 10\n      after: $cursor\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      nodes {\n        id\n        name\n        createdAt\n        totalPriceSet {\n          shopMoney {\n            amount\n            currencyCode\n          }\n        }\n        displayFinancialStatus\n        cancelledAt\n        cancelReason\n        lineItems(first: 100) {\n          nodes {\n            quantity\n            product {\n              id\n              title\n            }\n          }\n        }\n      }\n\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }`,\n  variables: {\n  query: `created_at:>='${$json.startOfDay}' AND created_at:<'${$json.endOfDay}'`,\n  cursor: $json.cursor || null\n}\n})\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        304,
+        -80
+      ],
+      "id": "4ab750bc-6020-484f-a218-f447d92b053d",
+      "name": "Shopify - Get Orders"
+    },
+    {
+      "parameters": {
+        "jsCode": "const shopify = $('Shopify - Get Orders').all();\n\nconst allOrders = [];\n\nfor (const item of shopify) {\n  const orders = item.json.data?.orders?.nodes || [];\n  allOrders.push(...orders);\n}\n\nconst latestShopify = shopify[shopify.length - 1]?.json;\nconst ordersData = latestShopify?.data?.orders;\n\nif (!ordersData) {\n  throw new Error('Shopify orders data not found.');\n}\n\nreturn [\n  {\n    json: {\n      allOrders,\n      totalAccumulatedOrders: allOrders.length,\n\n      hasNextPage: ordersData.pageInfo?.hasNextPage || false,\n\n      endCursor: ordersData.pageInfo?.endCursor || null\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -80
+      ],
+      "id": "a91d7fac-6ecc-4b3d-9a8a-f5a91aab3ef7",
+      "name": "Process Shopify Page"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nreturn [\n  {\n    json: {\n      reportDate: data.reportDate,\n      startOfDay: data.startOfDay,\n      endOfDay: data.endOfDay,\n\n      allOrders: [],\n\n      cursor: null,\n      hasNextPage: true\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -80
+      ],
+      "id": "4e2365f9-f54d-4359-a17a-4ae4a513418d",
+      "name": "Initialize Pagination"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "14e802ef-af37-4d6e-a492-e3800edd9c9d",
+              "leftValue": "={{$json.hasNextPage}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        736,
+        -80
+      ],
+      "id": "dae07927-f24e-4783-bf7e-f7d7776f972c",
+      "name": "More Orders?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst allOrders = data.allOrders || [];\n\nreturn [\n  {\n    json: {\n      reportDate: data.reportDate,\n      startOfDay: data.startOfDay,\n      endOfDay: data.endOfDay,\n\n      totalOrders: allOrders.length,\n\n      orders: allOrders\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        16
+      ],
+      "id": "950205a1-fed1-4d66-983b-c31e07598b12",
+      "name": "All Orders Ready"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\nconst pakistanDate = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'Asia/Karachi',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n}).format(now);\n\nconst [year, month, day] = pakistanDate.split('-');\n\n// Pakistan midnight at the beginning of the reporting day\nconst startPakistan = new Date(\n  `${year}-${month}-${day}T00:00:00+05:00`\n);\n\n// Pakistan midnight at the beginning of the next day\nconst endPakistan = new Date(startPakistan);\nendPakistan.setUTCDate(endPakistan.getUTCDate() + 1);\n\n// Remove milliseconds because Shopify's search timestamp\n// works better with second-precision ISO timestamps.\nconst startOfDay = startPakistan\n  .toISOString()\n  .replace('.000Z', 'Z');\n\nconst endOfDay = endPakistan\n  .toISOString()\n  .replace('.000Z', 'Z');\n\nreturn [\n  {\n    json: {\n      reportDate: pakistanDate,\n      startOfDay,\n      endOfDay\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -80
+      ],
+      "id": "2d7eb7e1-3d09-47ad-a3b7-9f66beeea05f",
+      "name": "Prepare Report Date"
+    },
+    {
+      "parameters": {
+        "jsCode": "const page = $('Process Shopify Page').first().json;\n\nreturn [\n  {\n    json: {\n      reportDate: $('Initialize Pagination').first().json.reportDate,\n      startOfDay: $('Initialize Pagination').first().json.startOfDay,\n      endOfDay: $('Initialize Pagination').first().json.endOfDay,\n\n      cursor: page.endCursor\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -320
+      ],
+      "id": "d96df79e-67d9-4eb4-95c1-68aa9936c655",
+      "name": "Prepare Next Page"
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $json.orders || [];\n\nlet totalOrders = orders.length;\nlet totalRevenue = 0;\nlet paidOrders = 0;\nlet cancelledOrders = 0;\nlet refundedOrders = 0;\n\nconst productSales = {};\n\nfor (const order of orders) {\n\n  // Revenue\n  const amount = parseFloat(\n    order.totalPriceSet?.shopMoney?.amount || 0\n  );\n\n  totalRevenue += amount;\n\n  // Financial status\n  const financialStatus =\n    order.displayFinancialStatus || '';\n\n  if (financialStatus === 'PAID') {\n    paidOrders++;\n  }\n\n  if (order.cancelledAt) {\n    cancelledOrders++;\n  }\n\n  if (\n    financialStatus === 'REFUNDED' ||\n    financialStatus === 'PARTIALLY_REFUNDED'\n  ) {\n    refundedOrders++;\n  }\n\n  // Products\n  const lineItems = order.lineItems?.nodes || [];\n\n  for (const item of lineItems) {\n\n    const productTitle =\n      item.product?.title || 'Unknown Product';\n\n    const quantity =\n      Number(item.quantity || 0);\n\n    productSales[productTitle] =\n      (productSales[productTitle] || 0) + quantity;\n  }\n}\n\n// Average Order Value\nconst averageOrderValue =\n  totalOrders > 0\n    ? totalRevenue / totalOrders\n    : 0;\n\n// Find top product\nlet topProduct = 'N/A';\nlet topProductQuantity = 0;\n\nfor (const [product, quantity] of Object.entries(productSales)) {\n\n  if (quantity > topProductQuantity) {\n    topProduct = product;\n    topProductQuantity = quantity;\n  }\n}\n\nreturn [\n  {\n    json: {\n      totalOrders,\n      totalRevenue: Number(totalRevenue.toFixed(2)),\n      averageOrderValue: Number(averageOrderValue.toFixed(2)),\n\n      paidOrders,\n      cancelledOrders,\n      refundedOrders,\n\n      topProduct,\n      topProductQuantity\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        16
+      ],
+      "id": "96f8358d-3481-4f15-8e74-794bb7e88ab0",
+      "name": "Aggregate Sales"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst reportDate = $('Prepare Report Date').first().json.reportDate;\n\nconst currency = 'USD';\n\nconst report = `DAILY SALES REPORT\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\nDate: ${reportDate}\n\nOrders: ${data.totalOrders}\nRevenue: ${currency} ${data.totalRevenue.toFixed(2)}\nAverage Order Value: ${currency} ${data.averageOrderValue.toFixed(2)}\n\nPaid Orders: ${data.paidOrders}\nCancelled: ${data.cancelledOrders}\nRefunded: ${data.refundedOrders}\n\nTop Product:\n${data.topProduct} (${data.topProductQuantity} units)\n`;\n\nreturn [\n  {\n    json: {\n      reportDate,\n      totalOrders: data.totalOrders,\n      totalRevenue: data.totalRevenue,\n      averageOrderValue: data.averageOrderValue,\n      paidOrders: data.paidOrders,\n      cancelledOrders: data.cancelledOrders,\n      refundedOrders: data.refundedOrders,\n      topProduct: data.topProduct,\n      topProductQuantity: data.topProductQuantity,\n      currency,\n      report\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        16
+      ],
+      "id": "d382af08-984b-4d3a-b1f4-2b37f121f97f",
+      "name": "Generate Daily Sales Report"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{ $json.report }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1776,
+        144
+      ],
+      "id": "60b1cbbd-b255-45d1-9220-1e389192d41c",
+      "name": "Send Daily Sales Report to Slack",
+      "webhookId": "685ac461-ebe7-4d92-9f6c-abf0916e3f65",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Wg8mUH3v4lCIkzEliYlqxmrE2pAaKc0fhIocgjbYlAw",
+          "mode": "list",
+          "cachedResultName": "Shopify Daily Sales Report",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wg8mUH3v4lCIkzEliYlqxmrE2pAaKc0fhIocgjbYlAw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wg8mUH3v4lCIkzEliYlqxmrE2pAaKc0fhIocgjbYlAw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Report Date": "={{ $json.reportDate }}",
+            "Total Orders": "={{ $json.totalOrders }}",
+            "Total Revenue": "={{ $json.totalRevenue }}",
+            "Average Order Value": "={{ $json.averageOrderValue }}",
+            "Paid Orders": "={{ $json.paidOrders }}",
+            "Cancelled Orders": "={{ $json.cancelledOrders }}",
+            "Refunded Orders": "={{ $json.refundedOrders }}",
+            "Top Product": "={{ $json.topProduct }}",
+            "Top Product Quantity": "={{ $json.topProductQuantity }}",
+            "Currency": "={{ $json.currency }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Report Date",
+              "displayName": "Report Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Orders",
+              "displayName": "Total Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Revenue",
+              "displayName": "Total Revenue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Average Order Value",
+              "displayName": "Average Order Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Paid Orders",
+              "displayName": "Paid Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cancelled Orders",
+              "displayName": "Cancelled Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Refunded Orders",
+              "displayName": "Refunded Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Top Product",
+              "displayName": "Top Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Top Product Quantity",
+              "displayName": "Top Product Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1776,
+        -96
+      ],
+      "id": "36ab1e87-4edd-47c2-a545-a51487db323d",
+      "name": "Log Daily Sales Report",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Prepare Report Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify - Get Orders": {
+      "main": [
+        [
+          {
+            "node": "Process Shopify Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Pagination": {
+      "main": [
+        [
+          {
+            "node": "Shopify - Get Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Shopify Page": {
+      "main": [
+        [
+          {
+            "node": "More Orders?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "More Orders?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Next Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All Orders Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Report Date": {
+      "main": [
+        [
+          {
+            "node": "Initialize Pagination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Next Page": {
+      "main": [
+        [
+          {
+            "node": "Shopify - Get Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Orders Ready": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Sales": {
+      "main": [
+        [
+          {
+            "node": "Generate Daily Sales Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Daily Sales Report": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Sales Report to Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Daily Sales Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Daily Sales Report to Slack": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "6f2037f2-ca72-4d61-a26f-5e28b0b46dbe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "z9cLgRoSLAdc9Ywl",
+  "tags": []
+}

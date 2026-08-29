@@ -1,0 +1,358 @@
+{
+  "name": "Project 3 - Shopify Low Stock Detection â†’ Slack Approval Request",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        -32
+      ],
+      "id": "a5ae32d2-fa6a-4212-b1ba-cd09e151045d",
+      "name": "When clicking â€˜Execute workflowâ€™"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -640,
+        -384
+      ],
+      "id": "ff3f77a6-7d6a-4f63-acfe-42436eae89ad",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify Access Token').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"query { productVariants(first: 50) { nodes { id title sku inventoryQuantity product { id title } inventoryItem { id inventoryLevels(first: 1) { nodes { location { id name } } } } } pageInfo { hasNextPage endCursor } } }\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -416,
+        -384
+      ],
+      "id": "e1e77220-47cd-468c-b229-9ef2b21ca972",
+      "name": "Get Shopify Inventory"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.productVariants.nodes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -384
+      ],
+      "id": "b0cc160f-a673-42e9-84e8-d18d33f500f7",
+      "name": "Split Shopify Products",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        32,
+        -384
+      ],
+      "id": "6bdcb3bf-2b28-468c-a536-702fbdc86efe",
+      "name": "Process Products"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fb5bdbe3-f994-4e97-983f-9f8876979aae",
+              "leftValue": "={{ $json.inventoryQuantity }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "f6c1f0e1-47bf-4796-8904-39643a65877f",
+      "name": "Low Stock?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e695e179-a857-45ac-a837-aea4fb70702b",
+              "name": "product",
+              "value": "={{ $json.product.title }}",
+              "type": "string"
+            },
+            {
+              "id": "952882a5-8f2b-4cff-87f5-2eb15a936e4f",
+              "name": "sku",
+              "value": "={{ $json.sku || 'N/A' }}",
+              "type": "string"
+            },
+            {
+              "id": "f0381c03-7a70-47c5-b5d6-3bdae28d7fd2",
+              "name": "currentStock",
+              "value": "={{ $json.inventoryQuantity }}",
+              "type": "string"
+            },
+            {
+              "id": "80a9a577-98f7-4680-bcb9-cc6ccbeaa84f",
+              "name": "threshold",
+              "value": "5",
+              "type": "string"
+            },
+            {
+              "id": "9655af2a-cfdf-4973-93e2-99ea26d291a8",
+              "name": "inventoryItemId",
+              "value": "={{ $json.inventoryItem.id }}",
+              "type": "string"
+            },
+            {
+              "id": "cd7783ab-8a95-4938-b7b5-6c97caa154fe",
+              "name": "locationId",
+              "value": "={{ $json.inventoryItem.inventoryLevels.nodes[0].location.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        288,
+        -176
+      ],
+      "id": "26758ab3-fc4b-413a-bd63-ea5fbbc47e3b",
+      "name": "Prepare Low Stock Alert"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "messageType": "block",
+        "blocksUi": "={{\n{\n  blocks: [\n    {\n      type: \"section\",\n      text: {\n        type: \"mrkdwn\",\n        text:\n          \"âš ï¸ *LOW STOCK ALERT*\\n\\n\" +\n          \"*Product:* \" + $json.product + \"\\n\" +\n          \"*SKU:* \" + $json.sku + \"\\n\" +\n          \"*Current Stock:* \" + $json.currentStock + \"\\n\" +\n          \"*Threshold:* \" + $json.threshold + \"\\n\\n\" +\n          \"*Boss approval required.*\\n\" +\n          \"Click *Approve Restock* to continue.\"\n      }\n    },\n    {\n      type: \"actions\",\n      elements: [\n        {\n          type: \"button\",\n          text: {\n            type: \"plain_text\",\n            text: \"Approve Restock\"\n          },\n          style: \"primary\",\n          action_id: \"approve_restock\",\n          value: JSON.stringify({\n            action: \"approve_restock\",\n            product: $json.product,\n            sku: $json.sku,\n            inventoryItemId: $json.inventoryItemId,\n            locationId: $json.locationId,\n            currentStock: Number($json.currentStock),\n            threshold: Number($json.threshold)\n          })\n        },\n        {\n          type: \"button\",\n          text: {\n            type: \"plain_text\",\n            text: \"Reject\"\n          },\n          style: \"danger\",\n          action_id: \"reject_restock\",\n          value: JSON.stringify({\n            action: \"reject_restock\",\n            product: $json.product,\n            sku: $json.sku,\n            inventoryItemId: $json.inventoryItemId,\n            locationId: $json.locationId,\n            currentStock: Number($json.currentStock),\n            threshold: Number($json.threshold)\n          })\n        }\n      ]\n    },\n    {\n      type: \"context\",\n      elements: [\n        {\n          type: \"mrkdwn\",\n          text: \"Automated with this n8n workflow\"\n        }\n      ]\n    }\n  ]\n}\n}}",
+        "text": "=âš ï¸ LOW STOCK ALERT\n\nProduct: {{ $json.product }}\nSKU: {{ $json.sku }}\nCurrent Stock: {{ $json.currentStock }}\nThreshold: {{ $json.threshold }}\n\nBoss approval required.\nPlease approve and choose the restock quantity.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        -176
+      ],
+      "id": "4c1f1162-168b-4cf2-a5d8-96197f1c2937",
+      "name": "Send Low Stock Alert",
+      "webhookId": "2b0cdb72-7a80-4bb6-be99-307232903290",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        272,
+        96
+      ],
+      "id": "975e3130-1c7f-4470-9c43-d7322a170040",
+      "name": "No Alert Needed"
+    },
+    {
+      "parameters": {
+        "content": "PROJECT 3 â€” SHOPIFY LOW-STOCK AUTO-RESTOCK\n\nAutomatically detects low inventory,\nalerts the store owner in Slack,\nwaits for approval, and updates Shopify\ninventory after approval.",
+        "height": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1024,
+        -480
+      ],
+      "id": "dc7f84be-aaf2-416f-a268-2db2dbd6c198",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking â€˜Execute workflowâ€™": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Inventory": {
+      "main": [
+        [
+          {
+            "node": "Split Shopify Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Shopify Products": {
+      "main": [
+        [
+          {
+            "node": "Process Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Products": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Low Stock?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Low Stock?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Low Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Alert Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Low Stock Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Low Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "973b5eba-4cf2-4026-9d81-bf1d993bc28c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "RJ1ffVqUwW5c8MpW",
+  "tags": [
+    {
+      "updatedAt": "2026-08-14T02:36:04.223Z",
+      "createdAt": "2026-08-14T02:36:04.223Z",
+      "id": "gcDQgLBgP65dSrz9",
+      "name": "3.1"
+    }
+  ]
+}

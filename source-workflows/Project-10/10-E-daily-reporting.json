@@ -1,0 +1,243 @@
+{
+  "name": "Project 10 — E — Shopify Daily Operations Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        -48
+      ],
+      "id": "525ab4c5-0e71-4b11-a32f-a65d900c3e6b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "getAll",
+        "limit": 250,
+        "options": {
+          "createdAtMin": "={{ $now.startOf('day').toISO() }}",
+          "createdAtMax": "={{ $now.endOf('day').toISO() }}"
+        }
+      },
+      "type": "n8n-nodes-base.shopify",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -48
+      ],
+      "id": "15e44c71-00a9-4038-9bbc-d508320e011c",
+      "name": "Get many orders"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<GOOGLE_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Project 10 — Shopify Operations Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1837783984,
+          "mode": "list",
+          "cachedResultName": "Daily Report",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit#gid=1837783984"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Report Date": "={{ $json.reportDate }}",
+            "Total Orders": "={{ $json.totalOrders }}",
+            "Total Sales": "={{ $json.totalSales }}",
+            "Average Order Value": "={{ $json.averageOrderValue }}",
+            "Paid Orders": "={{ $json.paidOrders }}",
+            "Cancelled Orders": "={{ $json.cancelledOrders }}",
+            "Refunded Orders": "={{ $json.refundedOrders }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Report Date",
+              "displayName": "Report Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Orders",
+              "displayName": "Total Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Sales",
+              "displayName": "Total Sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Average Order Value",
+              "displayName": "Average Order Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Paid Orders",
+              "displayName": "Paid Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cancelled Orders",
+              "displayName": "Cancelled Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Refunded Orders",
+              "displayName": "Refunded Orders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        96
+      ],
+      "id": "47ef9b60-6f5d-4e32-afd5-894adad468f6",
+      "name": "Daily Report Log"
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $input.all();\n\nconst totalOrders = orders.length;\n\nconst totalSales = orders.reduce((sum, item) => {\n  return sum + Number(item.json.total_price || 0);\n}, 0);\n\nconst averageOrderValue = totalOrders > 0\n  ? totalSales / totalOrders\n  : 0;\n\nconst paidOrders = orders.filter(item =>\n  item.json.financial_status === 'paid'\n).length;\n\nconst cancelledOrders = orders.filter(item =>\n  item.json.cancelled_at !== null &&\n  item.json.cancelled_at !== undefined\n).length;\n\nconst refundedOrders = orders.filter(item =>\n  item.json.financial_status === 'refunded'\n).length;\n\nreturn [\n  {\n    json: {\n      reportDate: new Date().toISOString().split('T')[0],\n      totalOrders,\n      totalSales: Number(totalSales.toFixed(2)),\n      averageOrderValue: Number(averageOrderValue.toFixed(2)),\n      paidOrders,\n      cancelledOrders,\n      refundedOrders\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -48
+      ],
+      "id": "8335a251-0764-4095-aee8-59e3decea2f4",
+      "name": "Calculate Daily Summary"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<SLACK_CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "project-10-a-order-automation"
+        },
+        "text": "=📊 Shopify Daily Operations Report  \n📅 Date: {{ $json.reportDate }}  \n\n🛒 Total Orders: {{ $json.totalOrders }} \n💰 Total Sales: {{ $json.totalSales }} \n📦 Average Order Value: {{ $json.averageOrderValue }}  \n✅ Paid Orders: {{ $json.paidOrders }} \n❌ Cancelled Orders: {{ $json.cancelledOrders }} \n↩️ Refunded Orders: {{ $json.refundedOrders }}  \n\nGoogle Sheets: Daily report logged successfully.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        336,
+        -176
+      ],
+      "id": "6e30e29a-2989-4a7f-8856-acc600081bf8",
+      "name": "Daily Report",
+      "webhookId": "<WEBHOOKID> "
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many orders": {
+      "main": [
+        [
+          {
+            "node": "Calculate Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Daily Summary": {
+      "main": [
+        [
+          {
+            "node": "Daily Report Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "vFFNyT6KrCuhJBzF"
+  },
+  "nodeGroups": [],
+  "tags": [
+    {
+      "name": "10.5"
+    }
+  ]
+}

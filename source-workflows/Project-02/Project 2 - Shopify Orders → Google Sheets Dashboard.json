@@ -1,0 +1,409 @@
+{
+  "name": "Project 2 - Shopify Orders → Google Sheets Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-orders",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        -96
+      ],
+      "id": "6e57a43f-8521-4d6f-83ed-0d4399cf3afc",
+      "name": "Shopify Order Webhook",
+      "webhookId": "25f33e37-c04d-44e9-80b8-1f124a70b77c"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a422c3c-c736-4e09-bd81-486fc887c5ea",
+              "name": "Order",
+              "value": "={{ $json.body.id }}",
+              "type": "string"
+            },
+            {
+              "id": "c8b777db-1c66-4b73-afed-facbf792fa2a",
+              "name": "Customer",
+              "value": "={{ $json.body.customer.first_name + ' ' + $json.body.customer.last_name }}",
+              "type": "string"
+            },
+            {
+              "id": "a383a575-704c-4ad7-824b-1fe16eb05aa5",
+              "name": "Phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "88935850-3eb0-4068-81b9-b2fa276ab533",
+              "name": "Amount",
+              "value": "={{ $json.body.total_price }}",
+              "type": "number"
+            },
+            {
+              "id": "53a3e12e-9adc-48d3-9872-3c79144a4664",
+              "name": "Currency",
+              "value": "={{ $json.body.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "a94efb1a-04fe-4546-82f7-b1dbf6b3e392",
+              "name": "Status",
+              "value": "={{ $json.body.financial_status }}",
+              "type": "string"
+            },
+            {
+              "id": "fe75a3fa-664a-42b6-8466-eb559b451a15",
+              "name": "Date",
+              "value": "={{ DateTime.fromISO($json.body.created_at).setZone('Asia/Karachi').toFormat('dd LLL yyyy, hh:mm a') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -208,
+        -32
+      ],
+      "id": "9b51b731-4e01-43b1-9097-87c13c754c1a",
+      "name": "Prepare Order Data"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI",
+          "mode": "list",
+          "cachedResultName": "Shopify Orders Dashboard",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Order",
+              "lookupValue": "={{ $('Prepare Order Data').item.json.Order }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        16,
+        -208
+      ],
+      "id": "0f205041-6d20-49e7-b8ed-85818f11dc36",
+      "name": "Check Duplicate Order",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "03f5c14c-368d-4ab1-87a2-f84294364c5d",
+              "leftValue": "={{ $json.Order }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "1a1d684f-ae48-4eb2-92dc-d17122b4a479",
+      "name": "Order Already Exists?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI",
+          "mode": "list",
+          "cachedResultName": "Shopify Orders Dashboard",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nFAYEdNMgvIo1wJN5HktgNijByxFKR4XMvq5aPfLRFI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order": "={{ $('Prepare Order Data').item.json.Order }}",
+            "Customer": "={{ $('Prepare Order Data').item.json.Customer }}",
+            "Phone": "={{ $('Prepare Order Data').item.json.Phone }}",
+            "Amount": "={{ $('Prepare Order Data').item.json.Amount }}",
+            "Currency": "={{ $('Prepare Order Data').item.json.Currency }}",
+            "Status": "={{ $('Prepare Order Data').item.json.Status }}",
+            "Date": "={{ $('Prepare Order Data').item.json.Date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order",
+              "displayName": "Order",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer",
+              "displayName": "Customer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        80
+      ],
+      "id": "9af12534-7792-4018-9e05-a3d2f329ec7d",
+      "name": "Add Order To Google Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=Shopify Order Added Successfully\n\nOrder: {{ $json.Order }}\nCustomer: {{ $json.Customer }}\nPhone: {{ $json.Phone }}\nAmount: {{ $json.Amount }} {{ $json.Currency }}\nStatus: {{ $json.Status }}\nDate: {{ $json.Date }}\n\nGoogle Sheets: Order recorded successfully.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        736,
+        176
+      ],
+      "id": "c21b190e-c655-4333-bd47-eb2d7cfa9671",
+      "name": "Slack - Order Added",
+      "webhookId": "9a21f452-a23d-41e8-9cce-80b7eb3e7810",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=⚠️ Duplicate Shopify Order Detected  Order: {{ $('Prepare Order Data').item.json.Order }} Customer: {{ $('Prepare Order Data').item.json.Customer }} Phone: {{ $('Prepare Order Data').item.json.Phone }} Amount: {{ $('Prepare Order Data').item.json.Amount }} {{ $('Prepare Order Data').item.json.Currency }} Status: {{ $('Prepare Order Data').item.json.Status }}  Action: Order was NOT added to Google Sheets because it already exists.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        -192
+      ],
+      "id": "09f159ea-d93b-46b2-af59-c27b4f870716",
+      "name": "Slack - Duplicate Alert",
+      "webhookId": "87d70c70-c551-410e-9a77-d2514acf1bf3",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Shopify Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Data": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Order": {
+      "main": [
+        [
+          {
+            "node": "Order Already Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Already Exists?": {
+      "main": [
+        [
+          {
+            "node": "Slack - Duplicate Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add Order To Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Order To Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Slack - Order Added",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "bZckI0h5rv1IFdr2",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "c57e439b-bc8a-42ae-b9b8-ef4d3cb6c22c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "eqYyqYzHmWaPMWCO",
+  "tags": []
+}

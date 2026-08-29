@@ -1,0 +1,440 @@
+{
+  "name": "Project 10 — B — Fulfillment Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3d773379-b0c4-444c-a2a8-c07a12ebae35",
+              "leftValue": "={{ $json.id.toString() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6ba12174-2665-4460-bbf8-56b1ebd69799",
+              "leftValue": "={{ $json.customer.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "d0c48dee-ded5-4a7a-a567-7a49da23d749",
+              "leftValue": "={{ $json.fulfillments[0].tracking_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "aec35693-f66a-4b11-951e-144a343dcc15",
+              "leftValue": "={{ $json.fulfillments[0].tracking_company }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -208,
+        0
+      ],
+      "id": "d8d220cb-6208-4510-976f-c0cddf2f2d0b",
+      "name": "Validate Fulfillment"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9d4b6a1a-2ab1-4c42-8cc6-5cb33ece1db1",
+              "name": "Order ID",
+              "value": "={{ $json.id.toString() }}",
+              "type": "string"
+            },
+            {
+              "id": "9f1a61e3-f883-45c2-8e06-a72c6e9f7c06",
+              "name": "Order Number",
+              "value": "={{ $json.order_number }}",
+              "type": "string"
+            },
+            {
+              "id": "29273f72-ffc0-450d-bbef-1aab8a9b7dce",
+              "name": "Order Name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "898c25a4-fde4-4afb-b94a-531bef799205",
+              "name": "Customer Name",
+              "value": "={{ $json.customer.first_name + ' ' + $json.customer.last_name }}",
+              "type": "string"
+            },
+            {
+              "id": "fdfb2c7b-95e2-4bf3-a345-648e6dda2832",
+              "name": "Customer Phone",
+              "value": "={{ $json.customer.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "7c707bfe-5f39-4a06-bef0-ec186f36d135",
+              "name": "Customer Email",
+              "value": "={{ $json.customer.email }}",
+              "type": "string"
+            },
+            {
+              "id": "e89d921b-6066-4ec9-a8e2-fdcf63fabe69",
+              "name": "Tracking Company",
+              "value": "={{ $json.fulfillments[0].tracking_company }}",
+              "type": "string"
+            },
+            {
+              "id": "e0a8e600-52a9-46b0-8728-412d42f92b9d",
+              "name": "Tracking Number",
+              "value": "={{ $json.fulfillments[0].tracking_number }}",
+              "type": "string"
+            },
+            {
+              "id": "6c6c65a2-ec0f-420e-b4d4-ad807e43fc34",
+              "name": "Tracking URL",
+              "value": "={{ $json.fulfillments[0].tracking_url }}",
+              "type": "string"
+            },
+            {
+              "id": "afbfb98d-667c-40bb-8630-ebe0b11d975a",
+              "name": "Fulfillment Date",
+              "value": "={{ DateTime.fromISO($json.fulfillments[0].created_at).setZone('Asia/Karachi').toFormat('dd MMM yyyy, hh:mm a') }}",
+              "type": "string"
+            },
+            {
+              "id": "9399e636-3cf9-4042-a7c6-b896b7d3bb74",
+              "name": "Product Summary",
+              "value": "={{ $json.fulfillments[0].line_items.map(item => item.title + ' x ' + item.quantity).join(', ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        32,
+        -192
+      ],
+      "id": "ca72d7aa-6420-474a-b4c1-7a83579eb95d",
+      "name": "Prepare Shipping Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/<WHATSAPP_PHONE_NUMBER_ID>/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"={{ $json['Customer Phone'] }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"preview_url\": true,\n    \"body\": \"Hello {{ $json['Customer Name'] }},\\n\\nGood news! Your order {{ $json['Order Name'] }} has been shipped.\\n\\n📦 Shipping Details\\n\\nProduct: {{ $json['Product Summary'] }}\\nCarrier: {{ $json['Tracking Company'] }}\\nTracking Number: {{ $json['Tracking Number'] }}\\n\\nTrack your shipment:\\n{{ $json['Tracking URL'] }}\\n\\nFulfillment Date: {{ $json['Fulfillment Date'] }}\\n\\nThank you for shopping with us!\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        256,
+        -192
+      ],
+      "id": "d38df210-c1bb-4efa-a30d-e00e4d81eecc",
+      "name": "WhatsApp Shipping Notification"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<GOOGLE_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Project 10 — Shopify Operations Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2005281187,
+          "mode": "list",
+          "cachedResultName": "Fulfillments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit#gid=2005281187"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $('Prepare Shipping Data').item.json['Order ID'] }}",
+            "Order Number": "={{ $('Prepare Shipping Data').item.json['Order Number'] }}",
+            "Order Name": "={{ $('Prepare Shipping Data').item.json['Order Name'] }}",
+            "Customer Name": "={{ $('Prepare Shipping Data').item.json['Customer Name'] }}",
+            "Customer Phone": "={{ $('Prepare Shipping Data').item.json['Customer Phone'] }}",
+            "Customer Email": "={{ $('Prepare Shipping Data').item.json['Customer Email'] }}",
+            "Product Summary": "={{ $('Prepare Shipping Data').item.json['Product Summary'] }}",
+            "Tracking Company": "={{ $('Prepare Shipping Data').item.json['Tracking Company'] }}",
+            "Tracking Number": "={{ $('Prepare Shipping Data').item.json['Tracking Number'] }}",
+            "Tracking URL": "={{ $('Prepare Shipping Data').item.json['Tracking URL'] }}",
+            "Fulfillment Date": "={{ $('Prepare Shipping Data').item.json['Fulfillment Date'] }}",
+            "WhatsApp Status": "Sent",
+            "Logged At": "={{ $now.setZone('Asia/Karachi').toFormat('dd MMM yyyy, hh:mm a') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order Number",
+              "displayName": "Order Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order Name",
+              "displayName": "Order Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Phone",
+              "displayName": "Customer Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Email",
+              "displayName": "Customer Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product Summary",
+              "displayName": "Product Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tracking Company",
+              "displayName": "Tracking Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tracking Number",
+              "displayName": "Tracking Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tracking URL",
+              "displayName": "Tracking URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fulfillment Date",
+              "displayName": "Fulfillment Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "WhatsApp Status",
+              "displayName": "WhatsApp Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Logged At",
+              "displayName": "Logged At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        -192
+      ],
+      "id": "fc97ab00-9078-4a11-a7ec-0a66ee2e491f",
+      "name": "Log Fulfillment"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "topic": "orders/fulfilled"
+      },
+      "type": "n8n-nodes-base.shopifyTrigger",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        0
+      ],
+      "id": "dffe8ea3-d80d-459b-a903-acdd3dea03cd",
+      "name": "Shopify Fulfillment Trigger",
+      "webhookId": "<WEBHOOKID> "
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Validate Fulfillment": {
+      "main": [
+        [
+          {
+            "node": "Prepare Shipping Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Shipping Data": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Shipping Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Shipping Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Fulfillment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify Fulfillment Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Fulfillment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "vFFNyT6KrCuhJBzF"
+  },
+  "nodeGroups": [],
+  "tags": [
+    {
+      "name": "10.2"
+    }
+  ]
+}

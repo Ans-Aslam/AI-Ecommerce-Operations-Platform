@@ -1,0 +1,1096 @@
+{
+  "name": "Project 9 - Shopify Inventory Monitoring & Reorder System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        16
+      ],
+      "id": "52a0631c-899c-4fab-bbfe-d909342be56a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        288,
+        16
+      ],
+      "id": "5b32631c-10cd-4743-bee5-93c5a1cae553",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com//admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $node['Get Shopify Access Token'].json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"query { productVariants(first: 50) { edges { node { id title sku product { id title } inventoryItem { id tracked inventoryLevels(first: 10) { edges { node { location { id name } quantities(names: [\\\"available\\\", \\\"on_hand\\\", \\\"committed\\\", \\\"incoming\\\"]) { name quantity } } } } } } } } }\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        16
+      ],
+      "id": "164881fd-070e-4eba-9f7a-154cbdbbb91d",
+      "name": "Get Shopify Inventory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const variants = $input.first().json.data.productVariants.edges;\n\nconst results = [];\n\nfor (const edge of variants) {\n  const variant = edge.node;\n\n  // Ignore products whose inventory isn't tracked\n  if (!variant.inventoryItem?.tracked) {\n    continue;\n  }\n\n  const inventoryLevels =\n    variant.inventoryItem.inventoryLevels?.edges || [];\n\n  for (const levelEdge of inventoryLevels) {\n    const level = levelEdge.node;\n\n    const quantities = {};\n\n    for (const q of level.quantities || []) {\n      quantities[q.name] = q.quantity;\n    }\n\n    results.push({\n      json: {\n        product_id: variant.product.id,\n        product_name: variant.product.title,\n        variant_id: variant.id,\n        variant_title: variant.title,\n        sku: variant.sku || \"\",\n        inventory_item_id: variant.inventoryItem.id,\n\n        location_id: level.location.id,\n        location_name: level.location.name,\n\n        available_stock: quantities.available ?? 0,\n        on_hand_stock: quantities.on_hand ?? 0,\n        committed_stock: quantities.committed ?? 0,\n        incoming_stock: quantities.incoming ?? 0,\n\n        tracked: variant.inventoryItem.tracked\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        16
+      ],
+      "id": "5861c301-64ae-4e9e-bd47-ba1515cf13af",
+      "name": "Prepare Inventory Data"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const stock = Number($json.available_stock ?? 0);\n\nlet inventory_status;\nlet urgency;\nlet action;\n\nif (stock === 0) {\n  inventory_status = \"Critical\";\n  urgency = \"High\";\n  action = \"Reorder immediately\";\n} else if (stock <= 5) {\n  inventory_status = \"Low\";\n  urgency = \"Medium\";\n  action = \"Reorder soon\";\n} else {\n  inventory_status = \"Normal\";\n  urgency = \"None\";\n  action = \"No action required\";\n}\n\nreturn {\n  json: {\n    ...$json,\n\n    inventory_status,\n    urgency,\n    action,\n\n    checked_at: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        16
+      ],
+      "id": "18a26a73-1eeb-404e-a3c9-71119019bde5",
+      "name": "Calculate Inventory Status"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "Critical",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8bad9e84-664d-4a74-882c-1ab87acc29f2"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Critical"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8405b6b0-499f-4be4-8973-e566545ef910",
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "Low",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Low"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1f3bc27a-6b2c-4ac4-a20e-7bdff73a4cc8",
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "Normal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Normal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        0
+      ],
+      "id": "6927e034-6ad9-448e-98fa-b8d26228f98f",
+      "name": "Inventory Status Router"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const product = $json.product_name;\nconst variant = $json.variant_title;\nconst sku = $json.sku || \"N/A\";\nconst stock = $json.available_stock;\nconst location = $json.location_name;\nconst action = $json.action;\n\nconst checkedAt = new Intl.DateTimeFormat(\"en-GB\", {\n  timeZone: \"Asia/Karachi\",\n  day: \"2-digit\",\n  month: \"short\",\n  year: \"numeric\",\n  hour: \"2-digit\",\n  minute: \"2-digit\",\n  hour12: true\n}).format(new Date());\n\nreturn {\n  json: {\n    ...$json,\n\n    checked_at: checkedAt,\n\n    alert_sent: true,\n    alert_type: \"Critical\",\n\n    slack_message:\n`ðŸš¨ *CRITICAL INVENTORY ALERT*\n\n*Product:* ${product}\n*Variant:* ${variant}\n*SKU:* ${sku}\n*Location:* ${location}\n\n*Available Stock:* ${stock}\n*Status:* ${$json.inventory_status}\n*Urgency:* ${$json.urgency}\n\n*Action:* ${action}\n\nâš ï¸ Immediate attention required.`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -160
+      ],
+      "id": "cc373531-3a15-474e-915a-4dfb3f6f183d",
+      "name": "Build Critical Alert"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1792,
+        -320
+      ],
+      "id": "951f4427-8283-4757-90b1-aceee9e215dd",
+      "name": "Critical Inventory Alert",
+      "webhookId": "92800e41-93ff-42bf-b2ff-1ea4f092af6c",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const product = $json.product_name;\nconst variant = $json.variant_title;\nconst sku = $json.sku || \"N/A\";\nconst stock = $json.available_stock;\nconst location = $json.location_name;\nconst action = $json.action;\n\nconst checkedAt = new Intl.DateTimeFormat(\"en-GB\", {\n  timeZone: \"Asia/Karachi\",\n  day: \"2-digit\",\n  month: \"short\",\n  year: \"numeric\",\n  hour: \"2-digit\",\n  minute: \"2-digit\",\n  hour12: true\n}).format(new Date());\n\nreturn {\n  json: {\n    ...$json,\n\n    checked_at: checkedAt,\n\n    alert_sent: true,\n    alert_type: \"Low\",\n\n    slack_message:\n`âš ï¸ *LOW INVENTORY ALERT*\n\n*Product:* ${product}\n*Variant:* ${variant}\n*SKU:* ${sku}\n*Location:* ${location}\n\n*Available Stock:* ${stock}\n*Status:* ${$json.inventory_status}\n*Urgency:* ${$json.urgency}\n\n*Action:* ${action}\n\nðŸ“¦ Stock is below the configured threshold.`\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        16
+      ],
+      "id": "210fab10-532f-489f-850a-d6b938a9ab19",
+      "name": "Build Low Stock Alert"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        2048,
+        336
+      ],
+      "id": "08000542-ad16-43f6-b7ab-028fe542d098",
+      "name": "Low Inventory Alert",
+      "webhookId": "3ced9006-c75b-4b93-8c85-0453bc2ab56d",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const now = new Date();\n\nconst formattedDateTime = new Intl.DateTimeFormat(\"en-GB\", {\n  timeZone: \"Asia/Karachi\",\n  day: \"2-digit\",\n  month: \"short\",\n  year: \"numeric\",\n  hour: \"2-digit\",\n  minute: \"2-digit\",\n  hour12: true\n}).format(now);\n\nreturn {\n  json: {\n    ...$json,\n    checked_at: formattedDateTime,\n    alert_sent: false,\n    alert_type: \"None\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        256
+      ],
+      "id": "cc9d15a2-c7ad-4ef0-af88-2cc661da34f8",
+      "name": "Prepare Normal Audit"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0",
+          "mode": "list",
+          "cachedResultName": "Shopify Inventory Monitoring",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1875729567,
+          "mode": "list",
+          "cachedResultName": "Inventory Audit Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0/edit#gid=1875729567"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Checked At": "={{ $json.checked_at }}",
+            "Product": "={{ $json.product_name }}",
+            "Variant": "={{ $json.variant_title }}",
+            "SKU": "={{ $json.sku }}",
+            "Location": "={{ $json.location_name }}",
+            "Available Stock": "={{ $json.available_stock }}",
+            "On Hand": "={{ $json.on_hand_stock }}",
+            "Committed": "={{ $json.committed_stock }}",
+            "Incoming": "={{ $json.incoming_stock }}",
+            "Status": "={{ $json.inventory_status }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Action": "={{ $json.action }}",
+            "Alert Sent": "={{ $json.alert_sent }}",
+            "Alert Type": "={{ $json.alert_type }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Checked At",
+              "displayName": "Checked At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Variant",
+              "displayName": "Variant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Available Stock",
+              "displayName": "Available Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "On Hand",
+              "displayName": "On Hand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Committed",
+              "displayName": "Committed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Incoming",
+              "displayName": "Incoming",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alert Sent",
+              "displayName": "Alert Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alert Type",
+              "displayName": "Alert Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2320,
+        0
+      ],
+      "id": "89be5e19-1162-468d-ba78-22972f094091",
+      "name": "Inventory Audit Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com//admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $node['Get Shopify Access Token'].json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ `query {\n  orders(\n    first: 100\n    query: \"created_at:>=${$json.sales_start_date} financial_status:paid\"\n    sortKey: CREATED_AT\n    reverse: true\n  ) {\n    edges {\n      node {\n        id\n        name\n        createdAt\n        displayFinancialStatus\n        lineItems(first: 50) {\n          edges {\n            node {\n              id\n              name\n              quantity\n              sku\n              variant {\n                id\n                title\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}` }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        384
+      ],
+      "id": "8c52ea52-13b8-43cf-8eb1-f27380cdafb1",
+      "name": "Get Shopify Sales History"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eda6d045-9d6f-47ec-ada5-bbc3e0fc7d97",
+              "name": "sales_start_date",
+              "value": "={{ $now.minus({ days: 7 }).toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        16,
+        384
+      ],
+      "id": "2180fa2f-2fa1-4df3-ac1f-48002a88e1f6",
+      "name": "Prepare Sales Query"
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $input.first().json.data.orders.edges;\n\nconst results = [];\n\nfor (const edge of orders) {\n  const order = edge.node;\n\n  for (const lineEdge of order.lineItems.edges) {\n    const item = lineEdge.node;\n\n    results.push({\n      orderId: order.id,\n      orderNumber: order.name,\n      orderDate: order.createdAt,\n      financialStatus: order.displayFinancialStatus,\n      productName: item.name,\n      quantity: item.quantity,\n      sku: item.sku || \"N/A\",\n      variantId: item.variant?.id || null,\n      variantTitle: item.variant?.title || \"N/A\"\n    });\n  }\n}\n\nreturn results.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        384
+      ],
+      "id": "6b61914d-ea66-41c2-aad0-9b50a45fdf82",
+      "name": "Prepare Sales Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $input.all();\n\nconst totalOrders = new Set(\n  orders.map(item => item.json.orderNumber)\n).size;\n\nconst totalUnitsSold = orders.reduce(\n  (sum, item) => sum + Number(item.json.quantity || 0),\n  0\n);\n\nconst productSales = {};\n\nfor (const item of orders) {\n  const product = item.json.productName;\n  const quantity = Number(item.json.quantity || 0);\n\n  if (!productSales[product]) {\n    productSales[product] = 0;\n  }\n\n  productSales[product] += quantity;\n}\n\nconst topProduct = Object.entries(productSales)\n  .sort((a, b) => b[1] - a[1])[0];\n\nreturn [\n  {\n    json: {\n      reportDate: new Date().toISOString().split('T')[0],\n      totalOrders,\n      totalUnitsSold,\n      topProduct: topProduct ? topProduct[0] : 'N/A',\n      topProductUnits: topProduct ? topProduct[1] : 0\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        384
+      ],
+      "id": "faf3d65a-2a60-4888-8c75-6444ff4c4690",
+      "name": "Calculate Sales Metrics"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sales = $input.all();\n\nconst products = {};\n\nfor (const item of sales) {\n  const data = item.json;\n\n  const variantId = data.variantId;\n  const productName = data.productName;\n  const sku = data.sku;\n  const quantity = Number(data.quantity || 0);\n\n  if (!variantId) {\n    continue;\n  }\n\n  if (!products[variantId]) {\n    products[variantId] = {\n      variantId,\n      productName,\n      sku,\n      unitsSold7Days: 0,\n      orderCount: 0\n    };\n  }\n\n  products[variantId].unitsSold7Days += quantity;\n  products[variantId].orderCount += 1;\n}\n\nreturn Object.values(products).map(product => ({\n  json: {\n    ...product,\n    averageDailySales: Number(\n      (product.unitsSold7Days / 7).toFixed(2)\n    )\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        384
+      ],
+      "id": "674fe20c-702e-4084-8064-8a87bebb8356",
+      "name": "Calculate Product Sales"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "variant_id",
+              "field2": "variantId"
+            }
+          ]
+        },
+        "joinMode": "enrichInput1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1376,
+        624
+      ],
+      "id": "b52ae0a3-dd24-400d-bdba-8a67f2d8a4d9",
+      "name": "Merge Inventory + Sales"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  const availableStock = Number(data.available_stock) || 0;\n  const averageDailySales = Number(data.averageDailySales) || 0;\n\n  let daysOfInventory = null;\n  let inventoryStatus = 'NO SALES DATA';\n\n  if (availableStock === 0) {\n    inventoryStatus = 'OUT OF STOCK';\n    daysOfInventory = 0;\n  } else if (averageDailySales > 0) {\n    daysOfInventory = Number(\n      (availableStock / averageDailySales).toFixed(1)\n    );\n\n    if (daysOfInventory <= 3) {\n      inventoryStatus = 'CRITICAL';\n    } else if (daysOfInventory <= 7) {\n      inventoryStatus = 'LOW';\n    } else {\n      inventoryStatus = 'HEALTHY';\n    }\n  }\n\n  return {\n    json: {\n      ...data,\n      daysOfInventory,\n      inventoryStatus\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        624
+      ],
+      "id": "13d40683-6caa-4a42-a466-bf79e34d5b3d",
+      "name": "Calculate Inventory Risk"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  return {\n    json: {\n      productName: data.productName,\n      sku: data.sku || 'N/A',\n      variantId: data.variantId,\n\n      unitsSold7Days: data.unitsSold7Days,\n      averageDailySales: data.averageDailySales,\n\n      availableStock: data.available_stock,\n      committedStock: data.committed_stock,\n      incomingStock: data.incoming_stock,\n\n      daysOfInventory: data.daysOfInventory,\n      inventoryStatus: data.inventoryStatus\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        624
+      ],
+      "id": "85c9a588-9cc7-4462-9d1e-4be5d0dfb1fd",
+      "name": "Prepare Inventory Report"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst totalProducts = items.length;\n\nconst criticalProducts = items.filter(\n  item => item.json.inventoryStatus === 'CRITICAL'\n).length;\n\nconst lowProducts = items.filter(\n  item => item.json.inventoryStatus === 'LOW'\n).length;\n\nconst healthyProducts = items.filter(\n  item => item.json.inventoryStatus === 'HEALTHY'\n).length;\n\nconst totalAvailableStock = items.reduce(\n  (sum, item) => sum + Number(item.json.availableStock || 0),\n  0\n);\n\nconst totalUnitsSold7Days = items.reduce(\n  (sum, item) => sum + Number(item.json.unitsSold7Days || 0),\n  0\n);\n\nconst averageDailySales = Number(\n  (totalUnitsSold7Days / 7).toFixed(2)\n);\n\nreturn [\n  {\n    json: {\n      reportDate: new Date().toISOString().split('T')[0],\n      totalProducts,\n      criticalProducts,\n      lowProducts,\n      healthyProducts,\n      totalAvailableStock,\n      totalUnitsSold7Days,\n      averageDailySales\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        624
+      ],
+      "id": "4acf9ff3-1d3c-4d23-a9d0-73142db1c425",
+      "name": "Build Daily Inventory Summary"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst report = `ðŸ“¦ *Daily Inventory Report*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ“… Date: ${data.reportDate}\n\nðŸ“Š *Inventory Overview*\nâ€¢ Total Products: ${data.totalProducts}\nâ€¢ Healthy: ${data.healthyProducts}\nâ€¢ Low Stock: ${data.lowProducts}\nâ€¢ Critical: ${data.criticalProducts}\n\nðŸ“ˆ *Sales & Stock*\nâ€¢ Units Sold (7 Days): ${data.totalUnitsSold7Days}\nâ€¢ Average Daily Sales: ${data.averageDailySales}\nâ€¢ Available Stock: ${data.totalAvailableStock}\n\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nInventory monitoring completed successfully.`;\n\nreturn [\n  {\n    json: {\n      ...data,\n      report\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        624
+      ],
+      "id": "c193daa7-e242-4e4a-ba15-22385bcb603f",
+      "name": "Build Daily Inventory Report"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{ $json.report }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        2480,
+        448
+      ],
+      "id": "77334435-4ddd-4cd1-a204-eb1812b8ba7c",
+      "name": "Daily Inventory Report",
+      "webhookId": "efa7d9ff-6e62-4a92-92de-29c17cb2f869",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0",
+          "mode": "list",
+          "cachedResultName": "Shopify Inventory Monitoring",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1455364962,
+          "mode": "list",
+          "cachedResultName": "Daily Report Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15oR3XAJbv54WiZO9yZiJpcChd6IRx2g06kloUSF8uH0/edit#gid=1455364962"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Total Products": "={{ $json.totalProducts }}",
+            "Report Date": "={{ $json.reportDate }}",
+            "Healthy Products": "={{ $json.healthyProducts }}",
+            "Low Products": "={{ $json.lowProducts }}",
+            "Critical Products": "={{ $json.criticalProducts }}",
+            "Total Units Sold 7 Days": "={{ $json.totalUnitsSold7Days }}",
+            "Average Daily Sales": "={{ $json.averageDailySales }}",
+            "Total Available Stock": "={{ $json.totalAvailableStock }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Report Date",
+              "displayName": "Report Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Products",
+              "displayName": "Total Products",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Healthy Products",
+              "displayName": "Healthy Products",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Low Products",
+              "displayName": "Low Products",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Critical Products",
+              "displayName": "Critical Products",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Units Sold 7 Days",
+              "displayName": "Total Units Sold 7 Days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Average Daily Sales",
+              "displayName": "Average Daily Sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Available Stock",
+              "displayName": "Total Available Stock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2496,
+        736
+      ],
+      "id": "33a26960-7f59-469d-af67-798e813e6395",
+      "name": "Daily Report Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Inventory",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Sales Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Inventory": {
+      "main": [
+        [
+          {
+            "node": "Prepare Inventory Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Inventory Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Inventory Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Inventory + Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Inventory Status": {
+      "main": [
+        [
+          {
+            "node": "Inventory Status Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inventory Status Router": {
+      "main": [
+        [
+          {
+            "node": "Build Critical Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Low Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Normal Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Critical Alert": {
+      "main": [
+        [
+          {
+            "node": "Critical Inventory Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inventory Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Low Stock Alert": {
+      "main": [
+        [
+          {
+            "node": "Low Inventory Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inventory Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Normal Audit": {
+      "main": [
+        [
+          {
+            "node": "Inventory Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Inventory Alert": {
+      "main": [
+        []
+      ]
+    },
+    "Low Inventory Alert": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Sales Query": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Sales History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Sales History": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sales Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sales Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Product Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Product Sales": {
+      "main": [
+        [
+          {
+            "node": "Calculate Sales Metrics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Inventory + Sales",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Calculate Sales Metrics": {
+      "main": [
+        []
+      ]
+    },
+    "Merge Inventory + Sales": {
+      "main": [
+        [
+          {
+            "node": "Calculate Inventory Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Inventory Risk": {
+      "main": [
+        [
+          {
+            "node": "Prepare Inventory Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Inventory Report": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Inventory Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Inventory Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Inventory Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Inventory Report": {
+      "main": [
+        [
+          {
+            "node": "Daily Inventory Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Daily Report Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Inventory Report": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "80a6d375-ebfd-4999-995d-b76d134de9ba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "aPAeOclmhukpgNlZ",
+  "tags": []
+}

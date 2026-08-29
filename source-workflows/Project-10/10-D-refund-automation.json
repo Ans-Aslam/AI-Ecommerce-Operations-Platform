@@ -1,0 +1,288 @@
+{
+  "name": "Project 10 — D — Shopify Refund Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "topic": "refunds/create"
+      },
+      "type": "n8n-nodes-base.shopifyTrigger",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "a5dfefac-d546-4dd8-aada-b03c580b8d3c",
+      "name": "Shopify Refund Trigger",
+      "webhookId": "<WEBHOOKID> "
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.flatMap(item => {\n  const refund = item.json;\n\n  return (refund.refund_line_items || []).map(refundItem => {\n    const lineItem = refundItem.line_item || {};\n    const transaction = (refund.transactions || [])[0] || {};\n\n    return {\n      json: {\n        refund_id: refund.id,\n        order_id: refund.order_id,\n\n        refund_date: refund.created_at,\n\n        refund_amount: Number(transaction.amount || refundItem.subtotal || 0),\n        currency: transaction.currency || 'USD',\n        refund_status: transaction.status || 'unknown',\n\n        restock: refund.restock === true,\n        restock_type: refundItem.restock_type || null,\n\n        product_id: lineItem.product_id || null,\n        product_title: lineItem.title || null,\n        variant_id: lineItem.variant_id || null,\n        variant_title: lineItem.variant_title || null,\n\n        sku: lineItem.sku || null,\n        quantity_refunded: refundItem.quantity || 0,\n\n        location_id: refundItem.location_id || null\n      }\n    };\n  });\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        0
+      ],
+      "id": "4eed45f4-24a0-499b-bc75-96bcff6f2fc8",
+      "name": "Prepare Refund Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst refundType = data.restock\n  ? 'Refund + Restock'\n  : 'Refund Only';\n\nconst message = `*SHOPIFY REFUND ALERT*\n\n*Refund Details*\n━━━━━━━━━━━━━━━━━━━━\n\n• Refund ID: ${data.refund_id}\n• Order ID: ${data.order_id}\n• Refund Date: ${data.refund_date}\n\n*Product Information*\n━━━━━━━━━━━━━━━━━━━━\n\n• Product: ${data.product_title}\n• Variant: ${data.variant_title || 'Default'}\n• SKU: ${data.sku || 'N/A'}\n• Quantity Refunded: ${data.quantity_refunded}\n\n*Financial Details*\n━━━━━━━━━━━━━━━━━━━━\n\n• Refund Amount: ${data.refund_amount.toFixed(2)} ${data.currency}\n• Refund Status: ${data.refund_status}\n\n*Inventory Action*\n━━━━━━━━━━━━━━━━━━━━\n\n• Action: ${refundType}\n• Restock Type: ${data.restock_type || 'N/A'}\n\nPlease review this refund and verify the inventory adjustment if required.`;\n\nreturn [\n  {\n    json: {\n      ...data,\n      refund_type: refundType,\n      slack_message: message\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        0
+      ],
+      "id": "71c05f96-1534-4203-910a-7d8d556073d1",
+      "name": "Prepare Refund Message"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<SLACK_CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "project-10-a-order-automation"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        656,
+        -128
+      ],
+      "id": "784c0dd8-b453-4094-a3cb-d67adae1d887",
+      "name": "Refund Alert",
+      "webhookId": "<WEBHOOKID> "
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<GOOGLE_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Project 10 — Shopify Operations Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1488878475,
+          "mode": "list",
+          "cachedResultName": "Refund Audit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit#gid=1488878475"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Refund ID": "={{ $json.refund_id }}",
+            "Order ID": "={{ $json.order_id }}",
+            "Refund Date": "={{ new Date($json.refund_date).toLocaleString('en-US', {\n  day: '2-digit',\n  month: 'short',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: true\n}) }}",
+            "Product": "={{ $json.product_title }}",
+            "Variant": "={{ $json.variant_title }}",
+            "SKU": "={{ $json.sku }}",
+            "Quantity Refunded": "={{ $json.quantity_refunded }}",
+            "Refund Amount": "={{ $json.refund_amount }}",
+            "Currency": "={{ $json.currency }}",
+            "Refund Status": "={{ $json.refund_status }}",
+            "Restock": "={{ $json.restock }}",
+            "Restock Type": "={{ $json.restock_type }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Refund ID",
+              "displayName": "Refund ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Refund Date",
+              "displayName": "Refund Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Variant",
+              "displayName": "Variant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SKU",
+              "displayName": "SKU",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity Refunded",
+              "displayName": "Quantity Refunded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Refund Amount",
+              "displayName": "Refund Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Refund Status",
+              "displayName": "Refund Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Restock",
+              "displayName": "Restock",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Restock Type",
+              "displayName": "Restock Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        144
+      ],
+      "id": "1b7ef2a5-fede-4ee2-8553-ea88dc9cb99c",
+      "name": "Refund Audit Log"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Shopify Refund Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Refund Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Refund Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Refund Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Refund Message": {
+      "main": [
+        [
+          {
+            "node": "Refund Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Refund Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refund Alert": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "vFFNyT6KrCuhJBzF"
+  },
+  "nodeGroups": [],
+  "tags": [
+    {
+      "name": "10.4"
+    }
+  ]
+}

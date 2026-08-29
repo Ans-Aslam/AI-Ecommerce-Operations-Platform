@@ -1,0 +1,660 @@
+================================================================================
+FILE: source-workflows\Project-01\Project 1 - Shopify Order → WhatsApp Confirmation.json
+WORKFLOW NAME: Project 1 - Shopify Order → WhatsApp Confirmation
+NODES: 22
+CONNECTION GROUPS: 17
+CONNECTIONS: 17
+
+CATEGORIES:
+  Code: 2
+  Condition: 3
+  Data Transformation: 1
+  Other: 1
+  Slack: 9
+  Switch: 1
+  Webhook: 4
+  WhatsApp: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 2
+  n8n-nodes-base.if: 3
+  n8n-nodes-base.removeDuplicates: 1
+  n8n-nodes-base.respondToWebhook: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.slack: 9
+  n8n-nodes-base.switch: 1
+  n8n-nodes-base.webhook: 3
+  n8n-nodes-base.whatsApp: 1
+
+NODES:
+    - Not Send / Validation Warning [n8n-nodes-base.slack]
+    - Meta [n8n-nodes-base.webhook]
+    - Shopify Order Trigger [n8n-nodes-base.webhook]
+    - Prepare Order Data [n8n-nodes-base.set]
+    - Build What'sApp Message [n8n-nodes-base.code]
+    - Check Duplicate Order [n8n-nodes-base.removeDuplicates]
+    - Order Validation [n8n-nodes-base.if]
+    - Send What'sApp Confirmation [n8n-nodes-base.whatsApp]
+    - Slack - Success [n8n-nodes-base.slack]
+    - Slack - Error [n8n-nodes-base.slack]
+    - What'sApp Status Webhook [n8n-nodes-base.webhook]
+    - Parse What'sApp Status [n8n-nodes-base.code]
+    - Check Status [n8n-nodes-base.if]
+    - WhatsApp Status Router [n8n-nodes-base.switch]
+    - Slack - Send [n8n-nodes-base.slack]
+    - BossAlert - Send [n8n-nodes-base.slack]
+    - Slack - Delivered [n8n-nodes-base.slack]
+    - Slack - Read [n8n-nodes-base.slack]
+    - Slack - Failed [n8n-nodes-base.slack]
+    - BossAlert - Failed [n8n-nodes-base.slack]
+    - Meta Webhook Verification [n8n-nodes-base.if]
+    - Webhook Response [n8n-nodes-base.respondToWebhook]
+
+CREDENTIAL REFERENCES:
+  - slackApi: Slack account
+  - whatsAppApi: WhatsApp account
+
+
+================================================================================
+FILE: source-workflows\Project-02\Project 2 - Shopify Orders → Google Sheets Dashboard.json
+WORKFLOW NAME: Project 2 - Shopify Orders → Google Sheets Dashboard
+NODES: 7
+CONNECTION GROUPS: 5
+CONNECTIONS: 5
+
+CATEGORIES:
+  Condition: 1
+  Data Transformation: 1
+  Google Sheets: 2
+  Slack: 2
+  Webhook: 1
+
+NODE TYPES:
+  n8n-nodes-base.googleSheets: 2
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.slack: 2
+  n8n-nodes-base.webhook: 1
+
+NODES:
+    - Shopify Order Webhook [n8n-nodes-base.webhook]
+    - Prepare Order Data [n8n-nodes-base.set]
+    - Check Duplicate Order [n8n-nodes-base.googleSheets]
+    - Order Already Exists? [n8n-nodes-base.if]
+    - Add Order To Google Sheet [n8n-nodes-base.googleSheets]
+    - Slack - Order Added [n8n-nodes-base.slack]
+    - Slack - Duplicate Alert [n8n-nodes-base.slack]
+
+CREDENTIAL REFERENCES:
+  - googleSheetsOAuth2Api: Google Sheets account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-03\Project 3 - Boss-Approved Auto-Restock Automation - Slack.json
+WORKFLOW NAME: Project 3 - Boss-Approved Auto-Restock Automation - Slack
+NODES: 15
+CONNECTION GROUPS: 10
+CONNECTIONS: 10
+
+CATEGORIES:
+  Condition: 2
+  Data Transformation: 2
+  HTTP Request: 4
+  Other: 2
+  Slack: 3
+  Switch: 1
+  Webhook: 1
+
+NODE TYPES:
+  n8n-nodes-base.httpRequest: 4
+  n8n-nodes-base.if: 2
+  n8n-nodes-base.set: 2
+  n8n-nodes-base.slack: 3
+  n8n-nodes-base.stickyNote: 2
+  n8n-nodes-base.switch: 1
+  n8n-nodes-base.webhook: 1
+
+NODES:
+    - Parse Slack Approval [n8n-nodes-base.set]
+    - Get Shopify Restock Token [n8n-nodes-base.httpRequest]
+    - Slack - Inventory Update Rejected [n8n-nodes-base.slack]
+    - Check Restock Result [n8n-nodes-base.if]
+    - Slack — Restock Success [n8n-nodes-base.slack]
+    - Sticky Note [n8n-nodes-base.stickyNote]
+    - Sticky Note1 [n8n-nodes-base.stickyNote]
+    - Slack Approval Webhook [n8n-nodes-base.webhook]
+    - Check Approval Decision [n8n-nodes-base.if]
+    - Slack - Restock Failed [n8n-nodes-base.slack]
+    - Slack Interaction Router [n8n-nodes-base.switch]
+    - Open Restock Quantity Modal [n8n-nodes-base.httpRequest]
+    - Parse Restock Quantity [n8n-nodes-base.set]
+    - Shopify Inventory Adjustment [n8n-nodes-base.httpRequest]
+    - Get Current Inventory [n8n-nodes-base.httpRequest]
+
+CREDENTIAL REFERENCES:
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-03\Project 3 - Shopify Low Stock Detection → Slack Approval Request.json
+WORKFLOW NAME: Project 3 - Shopify Low Stock Detection → Slack Approval Request
+NODES: 10
+CONNECTION GROUPS: 7
+CONNECTIONS: 7
+
+CATEGORIES:
+  Condition: 1
+  Data Transformation: 1
+  HTTP Request: 2
+  Other: 5
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.manualTrigger: 1
+  n8n-nodes-base.noOp: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.slack: 1
+  n8n-nodes-base.splitInBatches: 1
+  n8n-nodes-base.splitOut: 1
+  n8n-nodes-base.stickyNote: 1
+
+NODES:
+    - When clicking ‘Execute workflow’ [n8n-nodes-base.manualTrigger]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Get Shopify Inventory [n8n-nodes-base.httpRequest]
+    - Split Shopify Products [n8n-nodes-base.splitOut]
+    - Process Products [n8n-nodes-base.splitInBatches]
+    - Low Stock? [n8n-nodes-base.if]
+    - Prepare Low Stock Alert [n8n-nodes-base.set]
+    - Send Low Stock Alert [n8n-nodes-base.slack]
+    - No Alert Needed [n8n-nodes-base.noOp]
+    - Sticky Note [n8n-nodes-base.stickyNote]
+
+CREDENTIAL REFERENCES:
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-04\Project 4 - Shopify Customer Segmentation.json
+WORKFLOW NAME: Project 4 - Shopify Customer Segmentation
+NODES: 11
+CONNECTION GROUPS: 10
+CONNECTIONS: 10
+
+CATEGORIES:
+  Data Transformation: 4
+  Google Sheets: 1
+  HTTP Request: 2
+  Other: 1
+  Slack: 1
+  Switch: 1
+  Webhook: 1
+
+NODE TYPES:
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.merge: 1
+  n8n-nodes-base.set: 4
+  n8n-nodes-base.slack: 1
+  n8n-nodes-base.switch: 1
+  n8n-nodes-base.webhook: 1
+
+NODES:
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Prepare Customer Data [n8n-nodes-base.set]
+    - Customer Segmentation [n8n-nodes-base.switch]
+    - Set Normal Segment [n8n-nodes-base.set]
+    - Set Valued Segment [n8n-nodes-base.set]
+    - Set VIP Segment [n8n-nodes-base.set]
+    - Merge [n8n-nodes-base.merge]
+    - Append row in sheet [n8n-nodes-base.googleSheets]
+    - Boss — Customer Segment Alert [n8n-nodes-base.slack]
+    - Get Shopify Order [n8n-nodes-base.httpRequest]
+    - Shopify Order Webhook [n8n-nodes-base.webhook]
+
+CREDENTIAL REFERENCES:
+  - googleSheetsOAuth2Api: Google Sheets account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-05\Project 5 - Shopify Abandoned Checkout Recovery.json
+WORKFLOW NAME: Shopify Abandoned Checkout Recovery
+NODES: 21
+CONNECTION GROUPS: 12
+CONNECTIONS: 12
+
+CATEGORIES:
+  Condition: 3
+  Data Transformation: 3
+  Email: 1
+  HTTP Request: 2
+  Other: 10
+  Slack: 1
+  Webhook: 1
+
+NODE TYPES:
+  n8n-nodes-base.dataTable: 1
+  n8n-nodes-base.emailSend: 1
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.if: 3
+  n8n-nodes-base.merge: 1
+  n8n-nodes-base.noOp: 2
+  n8n-nodes-base.set: 3
+  n8n-nodes-base.slack: 1
+  n8n-nodes-base.stickyNote: 5
+  n8n-nodes-base.wait: 1
+  n8n-nodes-base.webhook: 1
+
+NODES:
+    - Shopify Checkout Webhook [n8n-nodes-base.webhook]
+    - Prepare Abandoned Checkout Data [n8n-nodes-base.set]
+    - Order Exists? [n8n-nodes-base.if]
+    - Check Shopify Order [n8n-nodes-base.httpRequest]
+    - Merge Checkout Data + Access Token [n8n-nodes-base.merge]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Wait Before Recovery Check [n8n-nodes-base.wait]
+    - Save Abandoned Checkout [n8n-nodes-base.dataTable]
+    - Recovery Eligible? [n8n-nodes-base.if]
+    - Build Recovery Message [n8n-nodes-base.set]
+    - Customer Contact Available? [n8n-nodes-base.if]
+    - Send an Email [n8n-nodes-base.emailSend]
+    - No Operation, do nothing [n8n-nodes-base.noOp]
+    - Stop - Recovery Not Eligible [n8n-nodes-base.noOp]
+    - Mark as Recovered [n8n-nodes-base.set]
+    - Slack - Recovery Email Sent [n8n-nodes-base.slack]
+    - Sticky Note [n8n-nodes-base.stickyNote]
+    - Sticky Note1 [n8n-nodes-base.stickyNote]
+    - Sticky Note2 [n8n-nodes-base.stickyNote]
+    - Sticky Note3 [n8n-nodes-base.stickyNote]
+    - Sticky Note4 [n8n-nodes-base.stickyNote]
+
+CREDENTIAL REFERENCES:
+  - slackApi: Slack account
+  - smtp: SMTP account
+
+
+================================================================================
+FILE: source-workflows\Project-06\Project 6 - Shopify Fulfillment Shipping Notification.json
+WORKFLOW NAME: Project 6 - Shopify Fulfillment Shipping Notification
+NODES: 11
+CONNECTION GROUPS: 9
+CONNECTIONS: 9
+
+CATEGORIES:
+  Condition: 1
+  Data Transformation: 3
+  HTTP Request: 3
+  Other: 1
+  Slack: 2
+  Webhook: 1
+
+NODE TYPES:
+  n8n-nodes-base.httpRequest: 3
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.merge: 1
+  n8n-nodes-base.set: 3
+  n8n-nodes-base.slack: 2
+  n8n-nodes-base.webhook: 1
+
+NODES:
+    - Webhook [n8n-nodes-base.webhook]
+    - Prepare Fulfillment Data [n8n-nodes-base.set]
+    - Get Shopify Order [n8n-nodes-base.httpRequest]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Extract Customer Data [n8n-nodes-base.set]
+    - Merge Fulfillment + Customer Data [n8n-nodes-base.merge]
+    - If [n8n-nodes-base.if]
+    - Send a message [n8n-nodes-base.slack]
+    - Build Shipping Message [n8n-nodes-base.set]
+    - Send WhatsApp Shipping Notification [n8n-nodes-base.httpRequest]
+    - Slack Success Notification [n8n-nodes-base.slack]
+
+CREDENTIAL REFERENCES:
+  - httpBearerAuth: Bearer Auth account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-07\Project 7 - Shopify Order Cancellation & Refund Exception Management System.json
+WORKFLOW NAME: Project 7 - Shopify Order Cancellation & Refund Exception Management System
+NODES: 14
+CONNECTION GROUPS: 11
+CONNECTIONS: 11
+
+CATEGORIES:
+  Data Transformation: 6
+  Google Sheets: 2
+  HTTP Request: 2
+  Slack: 2
+  Webhook: 2
+
+NODE TYPES:
+  n8n-nodes-base.googleSheets: 2
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.set: 6
+  n8n-nodes-base.slack: 2
+  n8n-nodes-base.webhook: 2
+
+NODES:
+    - Prepare Cancellation Data [n8n-nodes-base.set]
+    - Format Cancellation Alert [n8n-nodes-base.set]
+    - Prepare Cancellation Audit [n8n-nodes-base.set]
+    - Log Cancellation Event [n8n-nodes-base.googleSheets]
+    - Refund Created [n8n-nodes-base.webhook]
+    - Cancellation Created [n8n-nodes-base.webhook]
+    - Prepare Refund Data [n8n-nodes-base.set]
+    - Get Shopify Order Details [n8n-nodes-base.httpRequest]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Determine Refund Type [n8n-nodes-base.set]
+    - Format Refund Alert [n8n-nodes-base.set]
+    - Cancellation Message [n8n-nodes-base.slack]
+    - Refund Message [n8n-nodes-base.slack]
+    - Log Refund Event [n8n-nodes-base.googleSheets]
+
+CREDENTIAL REFERENCES:
+  - googleSheetsOAuth2Api: Google Sheets account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-08\Project 8 - Shopify Daily Sales Report.json
+WORKFLOW NAME: Project 8 - Shopify Daily Sales Report
+NODES: 13
+CONNECTION GROUPS: 12
+CONNECTIONS: 12
+
+CATEGORIES:
+  Code: 7
+  Condition: 1
+  Google Sheets: 1
+  HTTP Request: 2
+  Schedule: 1
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 7
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.scheduleTrigger: 1
+  n8n-nodes-base.slack: 1
+
+NODES:
+    - Schedule Trigger [n8n-nodes-base.scheduleTrigger]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Shopify - Get Orders [n8n-nodes-base.httpRequest]
+    - Process Shopify Page [n8n-nodes-base.code]
+    - Initialize Pagination [n8n-nodes-base.code]
+    - More Orders? [n8n-nodes-base.if]
+    - All Orders Ready [n8n-nodes-base.code]
+    - Prepare Report Date [n8n-nodes-base.code]
+    - Prepare Next Page [n8n-nodes-base.code]
+    - Aggregate Sales [n8n-nodes-base.code]
+    - Generate Daily Sales Report [n8n-nodes-base.code]
+    - Send Daily Sales Report to Slack [n8n-nodes-base.slack]
+    - Log Daily Sales Report [n8n-nodes-base.googleSheets]
+
+CREDENTIAL REFERENCES:
+  - googleSheetsOAuth2Api: Google Sheets account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-09\Project 9 - Shopify Inventory Monitoring & Reorder System.json
+WORKFLOW NAME: Project 9 - Shopify Inventory Monitoring & Reorder System
+NODES: 24
+CONNECTION GROUPS: 22
+CONNECTIONS: 22
+
+CATEGORIES:
+  Code: 12
+  Data Transformation: 1
+  Google Sheets: 2
+  HTTP Request: 3
+  Other: 1
+  Schedule: 1
+  Slack: 3
+  Switch: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 12
+  n8n-nodes-base.googleSheets: 2
+  n8n-nodes-base.httpRequest: 3
+  n8n-nodes-base.merge: 1
+  n8n-nodes-base.scheduleTrigger: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.slack: 3
+  n8n-nodes-base.switch: 1
+
+NODES:
+    - Schedule Trigger [n8n-nodes-base.scheduleTrigger]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Get Shopify Inventory [n8n-nodes-base.httpRequest]
+    - Prepare Inventory Data [n8n-nodes-base.code]
+    - Calculate Inventory Status [n8n-nodes-base.code]
+    - Inventory Status Router [n8n-nodes-base.switch]
+    - Build Critical Alert [n8n-nodes-base.code]
+    - Critical Inventory Alert [n8n-nodes-base.slack]
+    - Build Low Stock Alert [n8n-nodes-base.code]
+    - Low Inventory Alert [n8n-nodes-base.slack]
+    - Prepare Normal Audit [n8n-nodes-base.code]
+    - Inventory Audit Log [n8n-nodes-base.googleSheets]
+    - Get Shopify Sales History [n8n-nodes-base.httpRequest]
+    - Prepare Sales Query [n8n-nodes-base.set]
+    - Prepare Sales Data [n8n-nodes-base.code]
+    - Calculate Sales Metrics [n8n-nodes-base.code]
+    - Calculate Product Sales [n8n-nodes-base.code]
+    - Merge Inventory + Sales [n8n-nodes-base.merge]
+    - Calculate Inventory Risk [n8n-nodes-base.code]
+    - Prepare Inventory Report [n8n-nodes-base.code]
+    - Build Daily Inventory Summary [n8n-nodes-base.code]
+    - Build Daily Inventory Report [n8n-nodes-base.code]
+    - Daily Inventory Report [n8n-nodes-base.slack]
+    - Daily Report Log [n8n-nodes-base.googleSheets]
+
+CREDENTIAL REFERENCES:
+  - googleSheetsOAuth2Api: Google Sheets account
+  - slackApi: Slack account
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-A-order-automation.json
+WORKFLOW NAME: Project 10 — A — Order Automation
+NODES: 6
+CONNECTION GROUPS: 5
+CONNECTIONS: 5
+
+CATEGORIES:
+  Condition: 1
+  Data Transformation: 1
+  Google Sheets: 1
+  HTTP Request: 1
+  Shopify: 1
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.httpRequest: 1
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.shopifyTrigger: 1
+  n8n-nodes-base.slack: 1
+
+NODES:
+    - If [n8n-nodes-base.if]
+    - Prepare Order Data [n8n-nodes-base.set]
+    - Send WhatsApp Confirmation [n8n-nodes-base.httpRequest]
+    - Notify Slack — New Order [n8n-nodes-base.slack]
+    - Log Order [n8n-nodes-base.googleSheets]
+    - Shopify Order Trigger [n8n-nodes-base.shopifyTrigger]
+
+CREDENTIAL REFERENCES:
+  - None detected
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-B-fulfillment-automation.json
+WORKFLOW NAME: Project 10 — B — Fulfillment Automation
+NODES: 5
+CONNECTION GROUPS: 4
+CONNECTIONS: 4
+
+CATEGORIES:
+  Condition: 1
+  Data Transformation: 1
+  Google Sheets: 1
+  HTTP Request: 1
+  Shopify: 1
+
+NODE TYPES:
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.httpRequest: 1
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.set: 1
+  n8n-nodes-base.shopifyTrigger: 1
+
+NODES:
+    - Validate Fulfillment [n8n-nodes-base.if]
+    - Prepare Shipping Data [n8n-nodes-base.set]
+    - WhatsApp Shipping Notification [n8n-nodes-base.httpRequest]
+    - Log Fulfillment [n8n-nodes-base.googleSheets]
+    - Shopify Fulfillment Trigger [n8n-nodes-base.shopifyTrigger]
+
+CREDENTIAL REFERENCES:
+  - None detected
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-C-inventory-monitoring.json
+WORKFLOW NAME: Project 10 — C — Inventory Monitoring
+NODES: 13
+CONNECTION GROUPS: 11
+CONNECTIONS: 11
+
+CATEGORIES:
+  Code: 4
+  Condition: 1
+  Google Sheets: 1
+  HTTP Request: 2
+  Other: 2
+  Schedule: 1
+  Slack: 1
+  Switch: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 4
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.httpRequest: 2
+  n8n-nodes-base.if: 1
+  n8n-nodes-base.merge: 1
+  n8n-nodes-base.scheduleTrigger: 1
+  n8n-nodes-base.slack: 1
+  n8n-nodes-base.splitOut: 1
+  n8n-nodes-base.switch: 1
+
+NODES:
+    - Schedule Trigger [n8n-nodes-base.scheduleTrigger]
+    - Get Shopify Inventory [n8n-nodes-base.httpRequest]
+    - Get Shopify Access Token [n8n-nodes-base.httpRequest]
+    - Split Out [n8n-nodes-base.splitOut]
+    - Prepare Variant Inventory Data [n8n-nodes-base.code]
+    - Classify Inventory Status [n8n-nodes-base.code]
+    - Filter Actionable Inventory [n8n-nodes-base.if]
+    - Separate Inventory Alerts [n8n-nodes-base.switch]
+    - Merge Inventory Results [n8n-nodes-base.merge]
+    - Build Inventory Summary [n8n-nodes-base.code]
+    - Build Professional Inventory Alert1 [n8n-nodes-base.code]
+    - Send Inventory Alert [n8n-nodes-base.slack]
+    - Inventory Audit Log [n8n-nodes-base.googleSheets]
+
+CREDENTIAL REFERENCES:
+  - None detected
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-D-refund-automation.json
+WORKFLOW NAME: Project 10 — D — Shopify Refund Automation
+NODES: 5
+CONNECTION GROUPS: 4
+CONNECTIONS: 4
+
+CATEGORIES:
+  Code: 2
+  Google Sheets: 1
+  Shopify: 1
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 2
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.shopifyTrigger: 1
+  n8n-nodes-base.slack: 1
+
+NODES:
+    - Shopify Refund Trigger [n8n-nodes-base.shopifyTrigger]
+    - Prepare Refund Data [n8n-nodes-base.code]
+    - Prepare Refund Message [n8n-nodes-base.code]
+    - Refund Alert [n8n-nodes-base.slack]
+    - Refund Audit Log [n8n-nodes-base.googleSheets]
+
+CREDENTIAL REFERENCES:
+  - None detected
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-E-daily-reporting.json
+WORKFLOW NAME: Project 10 — E — Shopify Daily Operations Report
+NODES: 5
+CONNECTION GROUPS: 3
+CONNECTIONS: 3
+
+CATEGORIES:
+  Code: 1
+  Google Sheets: 1
+  Schedule: 1
+  Shopify: 1
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.code: 1
+  n8n-nodes-base.googleSheets: 1
+  n8n-nodes-base.scheduleTrigger: 1
+  n8n-nodes-base.shopify: 1
+  n8n-nodes-base.slack: 1
+
+NODES:
+    - Schedule Trigger [n8n-nodes-base.scheduleTrigger]
+    - Get many orders [n8n-nodes-base.shopify]
+    - Daily Report Log [n8n-nodes-base.googleSheets]
+    - Calculate Daily Summary [n8n-nodes-base.code]
+    - Daily Report [n8n-nodes-base.slack]
+
+CREDENTIAL REFERENCES:
+  - None detected
+
+
+================================================================================
+FILE: source-workflows\Project-10\10-F-error-handler.json
+WORKFLOW NAME: Project 10 — F — Shopify Error Handler
+NODES: 2
+CONNECTION GROUPS: 1
+CONNECTIONS: 1
+
+CATEGORIES:
+  Other: 1
+  Slack: 1
+
+NODE TYPES:
+  n8n-nodes-base.errorTrigger: 1
+  n8n-nodes-base.slack: 1
+
+NODES:
+    - Error Trigger [n8n-nodes-base.errorTrigger]
+    - Error Alert [n8n-nodes-base.slack]
+
+CREDENTIAL REFERENCES:
+  - None detected

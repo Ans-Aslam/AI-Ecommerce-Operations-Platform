@@ -1,0 +1,931 @@
+{
+  "name": "Project 1 - Shopify Order → WhatsApp Confirmation",
+  "nodes": [
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=⚠️ Shopify Order Test  Order: #{{ $('Prepare Order Data').item.json.orderNumber }} Customer: {{ $('Prepare Order Data').item.json.customerName }} Total: {{ $('Prepare Order Data').item.json.total }} {{ $('Prepare Order Data').item.json.currency }} Phone: {{ $('Prepare Order Data').item.json.phone }}  WhatsApp confirmation was NOT sent because the order did not pass the IF condition.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        128
+      ],
+      "id": "ea8f568c-fa83-40ec-a601-32629df8acc4",
+      "name": "Not Send / Validation Warning",
+      "webhookId": "defb1de2-5629-47b2-b4ec-be0186c549b8",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "whatsapp-meta-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        -480
+      ],
+      "id": "31c131ac-ea5b-4ae6-b965-20abb5b207ed",
+      "name": "Meta",
+      "webhookId": "eb8982d5-bef9-4999-b8d7-23e3c70b826f"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-order-created",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -944,
+        -32
+      ],
+      "id": "5013fef9-1a41-4cba-83d4-b6e4eeed236d",
+      "name": "Shopify Order Trigger",
+      "webhookId": "46a4e5c0-9206-4f5c-95a8-836937dd3f68"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"customerName\": \"{{ $json.body.customer.first_name + ' ' + $json.body.customer.last_name }}\",\n  \"orderNumber\": \"{{ $json.body.order_number }}\",\n  \"phone\": \"{{ $json.body.phone }}\",\n  \"total\": \"{{ $json.body.total_price }}\",\n  \"currency\": \"{{ $json.body.currency }}\",\n  \"email\": \"{{ $json.body.email }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -688,
+        -32
+      ],
+      "id": "0a500d4b-35f7-48e7-b8cf-b65bcb984bbb",
+      "name": "Prepare Order Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  let phone = item.json.phone;\n  const countryCode = item.json.country_code || 'PK';\n\n  // Missing phone\n  if (\n    phone === null ||\n    phone === undefined ||\n    String(phone).trim() === '' ||\n    String(phone).toLowerCase() === 'null'\n  ) {\n    item.json.phone = null;\n    return item;\n  }\n\n  phone = String(phone).trim();\n\n  // Keep only digits and preserve a leading +\n  const hasPlus = phone.startsWith('+');\n  let digits = phone.replace(/\\D/g, '');\n\n  // Country calling codes\n  const countryCallingCodes = {\n    PK: '92',\n    US: '1',\n    CA: '1',\n    GB: '44',\n    AE: '971',\n    SA: '966',\n    QA: '974',\n    KW: '965',\n    BH: '973',\n    OM: '968',\n    IN: '91',\n    BD: '880',\n    AU: '61',\n    DE: '49',\n    FR: '33',\n    IT: '39',\n    ES: '34',\n    TR: '90',\n    MY: '60',\n    SG: '65'\n  };\n\n  const countryCallingCode = countryCallingCodes[countryCode];\n\n  // Already international:\n  // +923001234567 → 923001234567\n  // 923001234567  → 923001234567\n  // +14155552671   → 14155552671\n  if (hasPlus || (countryCallingCode && digits.startsWith(countryCallingCode))) {\n    item.json.phone = digits;\n    return item;\n  }\n\n  // Local number starting with 0:\n  // 03001234567 + PK → 923001234567\n  if (digits.startsWith('0')) {\n    digits = digits.substring(1);\n  }\n\n  // Add the customer's country calling code\n  if (countryCallingCode) {\n    item.json.phone = countryCallingCode + digits;\n  } else {\n    // Cannot safely normalize an unknown country\n    item.json.phone = null;\n    item.json.phoneNormalizationError =\n      `Unknown country code: ${countryCode}`;\n  }\n\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -32
+      ],
+      "id": "da3c771c-071a-4056-a0f5-114d59702999",
+      "name": "Build What'sApp Message"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "orderNumber",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -32
+      ],
+      "id": "baefe72c-3a39-4751-84a4-b7723ceafad8",
+      "name": "Check Duplicate Order"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "53afa542-3c2d-40f9-a9e4-686d65c105a2",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        -32
+      ],
+      "id": "06f7e7e4-e615-469f-bb64-9c06fc4f96bd",
+      "name": "Order Validation"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ \"1303412826181918\" }}",
+        "recipientPhoneNumber": "={{ $json.phone }}",
+        "textBody": "=Order Confirmed!\n\nHI {{ $json.customerName }}\nYour order {{ $json.orderNumber }} has been confirmed successfully.\n\nOrder Total:  {{ $json.total }} , {{ $json.currency }}\n\nThank you for shopping with us!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -192
+      ],
+      "id": "371134d4-443f-4b60-b715-b484b58c6f4f",
+      "name": "Send What'sApp Confirmation",
+      "webhookId": "18d0ecde-04d4-42ad-8314-39b3efbf9d30",
+      "retryOnFail": false,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "QzTeuiEUxzRFshtM",
+          "name": "WhatsApp account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=🛒 Shopify Order Test\n\nOrder: #{{$('Prepare Order Data').item.json.orderNumber}}\nCustomer: {{$('Prepare Order Data').item.json.customerName}}\nTotal: {{$('Prepare Order Data').item.json.total}} {{$('Prepare Order Data').item.json.currency}}\nPhone: {{$('Prepare Order Data').item.json.phone}}\n\nWhatsApp HTTP Request was executed.\n\nCheck the HTTP Request node for the result.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        -176
+      ],
+      "id": "22717486-ec81-44b8-a7e8-8c6b942b3054",
+      "name": "Slack - Success",
+      "webhookId": "7bd48063-e0e8-4e37-bf69-157810197e28",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=⚠️ WhatsApp Confirmation Failed  Shopify Order: #{{$('Prepare Order Data').item.json.orderNumber}} Customer: {{$('Prepare Order Data').item.json.customerName}} Total: {{$('Prepare Order Data').item.json.total}} {{$('Prepare Order Data').item.json.currency}} Phone: {{$('Prepare Order Data').item.json.phone}}  WhatsApp confirmation could not be sent. Please check the WhatsApp API / HTTP Request error.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        544,
+        144
+      ],
+      "id": "4ca97427-5081-4f9c-a014-2e15a8757cbe",
+      "name": "Slack - Error",
+      "webhookId": "ce123217-7c0a-4f49-8b3e-68551e203b95",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-meta-webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -928,
+        -880
+      ],
+      "id": "0e92b5d3-9525-46da-a291-ccc804f68e32",
+      "name": "What'sApp Status Webhook",
+      "webhookId": "52e28317-300b-4535-b665-10e8ac57d58d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body;\n\n// Get the WhatsApp value object\nconst value = body?.entry?.[0]?.changes?.[0]?.value;\n\n// Check for message status update\nconst statusData = value?.statuses?.[0];\n\nif (statusData) {\n  return [\n    {\n      json: {\n        phoneNumber: statusData.recipient_id ?? null,\n        messageId: statusData.id ?? null,\n        messageText: null,\n        messageType: null,\n        status: statusData.status ?? null,\n        statusMessageId: statusData.id ?? null\n      }\n    }\n  ];\n}\n\n// Check for incoming WhatsApp message\nconst message = value?.messages?.[0];\n\nif (message) {\n  return [\n    {\n      json: {\n        phoneNumber: message.from ?? null,\n        messageId: message.id ?? null,\n        messageText: message.text?.body ?? null,\n        messageType: message.type ?? null,\n        status: null,\n        statusMessageId: null\n      }\n    }\n  ];\n}\n\n// Nothing recognized\nreturn [\n  {\n    json: {\n      phoneNumber: null,\n      messageId: null,\n      messageText: null,\n      messageType: null,\n      status: null,\n      statusMessageId: null\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        -880
+      ],
+      "id": "5c246c66-e0ea-4f8a-9a1c-e49d80210806",
+      "name": "Parse What'sApp Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "82e739e3-7200-459c-b267-b9815a792f53",
+              "leftValue": "={{ $json.messageId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -464,
+        -880
+      ],
+      "id": "116c75a2-7e54-4796-ac72-007f69496c70",
+      "name": "Check Status"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "sent",
+                    "rightValue": "={{ $json.status }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cd23f110-7b29-445b-aa88-4ce50b7f6468"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fea79b92-285e-431e-9dac-dee60d064a92",
+                    "leftValue": "delivered",
+                    "rightValue": "={{ $json.status }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "5276b6f6-ffb2-408c-8379-d2b369f52ef2",
+                    "leftValue": "read",
+                    "rightValue": "={{ $json.status }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f02fb298-cd96-459c-804a-6149dc9f54ab",
+                    "leftValue": "failed",
+                    "rightValue": "={{ $json.status }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        -656
+      ],
+      "id": "e3b79245-ba3c-4224-9756-73e0703fe069",
+      "name": "WhatsApp Status Router"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=✅ WhatsApp Message Sent  Message ID: {{$json.messageId}} Phone: {{$json.customerPhone}} Status: {{$json.status}}  WhatsApp accepted the message successfully.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        -960
+      ],
+      "id": "ff748ac4-f176-4745-9c71-1fe964fe0dd6",
+      "name": "Slack - Send",
+      "webhookId": "ea5c65fa-8a3d-4485-9991-1406166a572e",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "WhatsApp message sent successfully.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        368,
+        -960
+      ],
+      "id": "3b4ba3e1-6337-44c9-b8c4-78867e8213c8",
+      "name": "BossAlert - Send",
+      "webhookId": "0beef4db-6cad-4122-8844-c27ac0864c29",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=📦 WhatsApp Message Delivered  Message ID: {{$json.messageId}} Phone: {{$json.customerPhone}} Status: {{$json.status}}  WhatsApp confirmation was delivered to the customer.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        -768
+      ],
+      "id": "9bc127ee-131d-4c59-ae57-ddca430faa29",
+      "name": "Slack - Delivered",
+      "webhookId": "ab6c8a01-af7f-4a04-8533-14d2e2b344e1",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=👁️ WhatsApp Message Read  Message ID: {{$json.messageId}} Phone: {{$json.customerPhone}} Status: {{$json.status}}  Customer has read the WhatsApp confirmation.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        -576
+      ],
+      "id": "d1db039c-7d03-4d57-89b5-387b1905b23f",
+      "name": "Slack - Read",
+      "webhookId": "7b70ed09-9005-4cd2-be04-dd65dcedc5c4",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMFS3ACU",
+          "mode": "list",
+          "cachedResultName": "shopify-orders-test"
+        },
+        "text": "=⚠️ WhatsApp Message Failed  Message ID: {{$json.messageId}} Phone: {{$json.customerPhone}} Status: {{$json.status}}  Please check the WhatsApp API/message delivery.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        -384
+      ],
+      "id": "e3673214-fcfb-418c-af70-237d22651b2b",
+      "name": "Slack - Failed",
+      "webhookId": "7a791766-73c6-4133-8e69-d2004ce80e84",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "=🚨 WhatsApp Message Failed\n\nStatus: {{ $json.status }}\nMessage ID: {{ $json.messageId }}\nCustomer Phone: {{ $json.phoneNumber }}\n\nPlease check the WhatsApp message delivery issue.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        368,
+        -384
+      ],
+      "id": "5c9a0cc0-6985-4476-a813-79d1af3b81ac",
+      "name": "BossAlert - Failed",
+      "webhookId": "ff04c1a6-9268-48d6-b056-ff2daf5542c3",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "800778a7-2cad-4257-9a92-0d5a80ecc3ab",
+              "leftValue": "={{ $json.query[\"hub.mode\"] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "69214cf8-a3cb-46cd-9227-21384fd7e8ad",
+              "leftValue": "={{ $json.query[\"hub.verify_token\"] }}",
+              "rightValue": "n8n_whatsapp_verify_2026",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -720,
+        -480
+      ],
+      "id": "31343976-7f4f-46be-bc22-7ff697d4bcac",
+      "name": "Meta Webhook Verification"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query[\"hub.challenge\"] }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -528,
+        -608
+      ],
+      "id": "430ae378-5a17-4464-b5aa-162e969694aa",
+      "name": "Webhook Response"
+    }
+  ],
+  "pinData": {
+    "What'sApp Status Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "roving-untimely-mushiness.ngrok-free.dev",
+            "user-agent": "facebookexternalua",
+            "content-length": "622",
+            "accept": "*/*",
+            "accept-encoding": "deflate, gzip",
+            "content-type": "application/json",
+            "x-forwarded-for": "2a03:2880:27ff:9::",
+            "x-forwarded-host": "roving-untimely-mushiness.ngrok-free.dev",
+            "x-forwarded-proto": "https",
+            "x-hub-signature": "sha1=3fa399e069bd4715060c88acb050c91f3910ca3d",
+            "x-hub-signature-256": "sha256=0db625f4b747d29ad0fc9d322cb402daf0cc32344612fb93ada4b949830629bf"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "object": "whatsapp_business_account",
+            "entry": [
+              {
+                "id": "0",
+                "changes": [
+                  {
+                    "field": "messages",
+                    "value": {
+                      "messaging_product": "whatsapp",
+                      "metadata": {
+                        "display_phone_number": "16505551111",
+                        "phone_number_id": "123456123"
+                      },
+                      "statuses": [
+                        {
+                          "id": "ABGGFlA5Fpa",
+                          "status": "sent",
+                          "timestamp": "1504902988",
+                          "recipient_id": "16315551181",
+                          "conversation": {
+                            "id": "CONVERSATION_ID",
+                            "expiration_timestamp": "1504903988",
+                            "origin": {
+                              "type": "marketing"
+                            }
+                          },
+                          "pricing": {
+                            "billable": true,
+                            "pricing_model": "PMP",
+                            "type": "regular",
+                            "category": "marketing"
+                          }
+                        }
+                      ],
+                      "contacts": [
+                        {
+                          "profile": {
+                            "name": "test user name"
+                          },
+                          "wa_id": "16315551181",
+                          "user_id": "US.13491208655302741918"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/whatsapp-meta-webhook",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Not Send / Validation Warning": {
+      "main": [
+        []
+      ]
+    },
+    "Meta": {
+      "main": [
+        [
+          {
+            "node": "Meta Webhook Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify Order Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Data": {
+      "main": [
+        [
+          {
+            "node": "Build What'sApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build What'sApp Message": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Order": {
+      "main": [
+        [
+          {
+            "node": "Order Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Validation": {
+      "main": [
+        [
+          {
+            "node": "Send What'sApp Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not Send / Validation Warning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send What'sApp Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Slack - Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Error": {
+      "main": [
+        []
+      ]
+    },
+    "What'sApp Status Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse What'sApp Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse What'sApp Status": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Status Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "WhatsApp Status Router": {
+      "main": [
+        [
+          {
+            "node": "Slack - Send",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Delivered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Send": {
+      "main": [
+        [
+          {
+            "node": "BossAlert - Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Failed": {
+      "main": [
+        [
+          {
+            "node": "BossAlert - Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta Webhook Verification": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Response": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7bd320fd-1152-49d6-988b-4d70abbebe9e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "FGgsqygQFqvNmKGf",
+  "tags": []
+}

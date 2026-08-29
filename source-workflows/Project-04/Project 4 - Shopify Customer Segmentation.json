@@ -1,0 +1,635 @@
+{
+  "name": "Project 4 - Shopify Customer Segmentation",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -928,
+        -96
+      ],
+      "id": "f635c21e-ab43-4f41-b424-8b48900654d2",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e437853a-2cbb-44b9-9312-0cd154a05b15",
+              "name": "order_id",
+              "value": "={{ $json.data.order.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ef681e0a-2d55-4d28-9cd8-9bfb248d893a",
+              "name": "order_number",
+              "value": "={{ $json.data.order.name }}",
+              "type": "string"
+            },
+            {
+              "id": "e94a8228-34a2-4c09-9122-5d9dc86d7169",
+              "name": "first_name",
+              "value": "={{ $json.data.order.customer?.firstName || $json.data.order.billingAddress?.firstName || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "aa6d8570-203a-4b38-8b25-98a43113a3f2",
+              "name": "last_name",
+              "value": "={{ $json.data.order.customer?.lastName || $json.data.order.billingAddress?.lastName || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "2f3ae253-1e85-41bd-95e9-93968202d158",
+              "name": "customer_email",
+              "value": "={{ $json.data.order.customer?.email || $json.data.order.email || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "73766073-06ff-46c8-a392-e19496189873",
+              "name": "order_total",
+              "value": "={{ Number($json.data.order.totalPriceSet.shopMoney.amount) }}",
+              "type": "string"
+            },
+            {
+              "id": "325b073e-2537-41de-9c7e-9fe20a9ed909",
+              "name": "currency",
+              "value": "={{ $json.data.order.totalPriceSet.shopMoney.currencyCode }}",
+              "type": "string"
+            },
+            {
+              "id": "50e44ff8-e489-4c43-bd8e-e539e923d93f",
+              "name": "created_at",
+              "value": "={{ $json.data.order.createdAt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -544,
+        -96
+      ],
+      "id": "ff175b45-6cf4-4e36-a414-4333a000a00d",
+      "name": "Prepare Customer Data"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.order_total) }}",
+                    "rightValue": 50,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "808a81e0-ba27-4f22-9719-c34eec89ae0f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Normal Customer"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f989b163-fda5-4fb2-850d-4098bc11b965",
+                    "leftValue": "={{ Number($json.order_total) }}",
+                    "rightValue": 200,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Valued Customer"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "edab11df-6982-47a0-8b60-0ff7a437b8a1",
+                    "leftValue": "={{ Number($json.order_total) }}",
+                    "rightValue": 200,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VIP Customer"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        -112
+      ],
+      "id": "b7f5fceb-a9ff-43e8-9f54-f3a25852a05c",
+      "name": "Customer Segmentation"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "238581aa-b758-4010-a946-8dbcae9f7ea4",
+              "name": "segment",
+              "value": "Normal Customer",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -112,
+        -256
+      ],
+      "id": "0ef1a3f7-7713-4148-8a74-3e7fa257f299",
+      "name": "Set Normal Segment"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51fc385c-fa7e-4f89-898f-300177811c4d",
+              "name": "segment",
+              "value": "Valued Customer",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -112,
+        -96
+      ],
+      "id": "f3cca3a5-337b-4af7-a37b-c116e6e26e29",
+      "name": "Set Valued Segment"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51fdf430-cf98-4cd4-ac29-a2d5f0cd74ca",
+              "name": "segment",
+              "value": "Vip Customer",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -112,
+        80
+      ],
+      "id": "73ef428e-a873-4881-8d04-d231b0ab27fd",
+      "name": "Set VIP Segment"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        112,
+        -112
+      ],
+      "id": "b792ff35-4866-44bf-9987-e5fede8e79d7",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1xyETW83jdznJEqLpydJG89RKpSnb-7htNmwsPKkI5XI",
+          "mode": "list",
+          "cachedResultName": "Shopify Customer Segmentation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xyETW83jdznJEqLpydJG89RKpSnb-7htNmwsPKkI5XI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xyETW83jdznJEqLpydJG89RKpSnb-7htNmwsPKkI5XI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Created At": "={{ $json.created_at }}",
+            "Currency": "={{ $json.currency }}",
+            "Segment": "={{ $json.segment }}",
+            "Order Total": "={{ $json.order_total }}",
+            "Customer Email": "={{ $json.customer_email }}",
+            "Last Name": "={{ $json.last_name }}",
+            "First Name": "={{ $json.first_name }}",
+            "Order Number": "={{ $json.order_number }}",
+            "Order ID": "={{ $json.order_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Number",
+              "displayName": "Order Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Email",
+              "displayName": "Customer Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Total",
+              "displayName": "Order Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        -96
+      ],
+      "id": "9af6f233-5b30-4d10-a230-f377bde1d4b6",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BPMUDFD45",
+          "mode": "list",
+          "cachedResultName": "boss-alerts"
+        },
+        "text": "={{ \n\"ðŸ›ï¸ *Shopify Customer Segmentation Alert*\\n\\n\" +\n\"Order: \" + $json.order_number + \"\\n\" +\n\"Customer: \" + $json.first_name + \" \" + $json.last_name + \"\\n\" +\n\"Email: \" + $json.customer_email + \"\\n\" +\n\"Order Total: \" + $json.order_total + \" \" + $json.currency + \"\\n\" +\n\"Segment: *\" + $json.segment + \"*\\n\" +\n\"Created At: \" + $json.created_at\n}}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        304,
+        -320
+      ],
+      "id": "451bd585-409b-4a02-89e5-6a6e43f58290",
+      "name": "Boss â€” Customer Segment Alert",
+      "webhookId": "28cab2e5-22f6-4cd3-9597-ab27366f5b2b",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $('Get Shopify Access Token').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  query: \"query GetOrder($id: ID!) { order(id: $id) { id name email createdAt totalPriceSet { shopMoney { amount currencyCode } } customer { id firstName lastName email } billingAddress { firstName lastName } } }\",\n  variables: {\n    id: $('Shopify Order Webhook').item.json.body.admin_graphql_api_id\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -736,
+        -96
+      ],
+      "id": "33d4e3e3-d1b4-4e01-8390-0fc9d7a38051",
+      "name": "Get Shopify Order"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-customer-segmentation",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1120,
+        -96
+      ],
+      "id": "4d521a9c-91a4-4449-9c48-1e53a6c9ad85",
+      "name": "Shopify Order Webhook",
+      "webhookId": "cbc9de6c-52b3-42b8-938a-85b7ed3fb94b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Customer Segmentation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Segmentation": {
+      "main": [
+        [
+          {
+            "node": "Set Normal Segment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Valued Segment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set VIP Segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Valued Segment": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set Normal Segment": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set VIP Segment": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Boss â€” Customer Segment Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Get Shopify Order": {
+      "main": [
+        [
+          {
+            "node": "Prepare Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify Order Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "566c9ccf-4520-4a01-9a5e-65c78e334e6c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "umOmpwnddsm9DMJl",
+  "tags": []
+}

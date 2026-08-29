@@ -1,0 +1,935 @@
+{
+  "name": "Project 7 - Shopify Order Cancellation & Refund Exception Management System",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c4d84c73-fee9-4bd3-8e6f-eeb9a7d6e081",
+              "name": "event_type",
+              "value": "=Order Cancelled",
+              "type": "string"
+            },
+            {
+              "id": "42afb2a4-5d03-460d-a5e0-2d60af1a878e",
+              "name": "order_number",
+              "value": "={{$json.body.name}}",
+              "type": "string"
+            },
+            {
+              "id": "d3a9a98a-ba42-4ef1-a55d-d037f4508022",
+              "name": "customer_name",
+              "value": "={{$json.body.customer.first_name}} {{$json.body.customer.last_name}}",
+              "type": "string"
+            },
+            {
+              "id": "e3ae4328-f2db-462f-b326-5a10dff46246",
+              "name": "customer_email",
+              "value": "={{$json.body.contact_email}}",
+              "type": "string"
+            },
+            {
+              "id": "2948f522-2a3e-44f2-a6c2-56d1e45673cc",
+              "name": "amount",
+              "value": "={{$json.body.total_price}}",
+              "type": "string"
+            },
+            {
+              "id": "3db8ddae-f7ce-468f-9b7c-fed24f40dca4",
+              "name": "currency",
+              "value": "={{ $json.body.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "2f8fc726-6020-4ff7-9268-8bc94244dacc",
+              "name": "cancel_reason",
+              "value": "={{ $json.body.cancel_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "7645ea19-f2bf-4cf6-8e9d-08b1c6df4fe5",
+              "name": "cancelled_at",
+              "value": "={{ $json.body.cancelled_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -576,
+        -640
+      ],
+      "id": "414c1aa2-2c9a-4c50-804a-012042545001",
+      "name": "Prepare Cancellation Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e55f2e69-6fa8-4120-8acb-3c28a36865ce",
+              "name": "slack_message",
+              "value": "=={{ \n  \"ðŸš¨ *ORDER CANCELLED*\\n\\n\" +\n  \"*Order:* \" + $json.order_number + \"\\n\" +\n  \"*Customer:* \" + $json.customer_name + \"\\n\" +\n  \"*Amount:* \" + $json.amount + \" \" + $json.currency + \"\\n\" +\n  \"*Reason:* \" +\n  (\n    $json.cancel_reason === \"customer\"\n      ? \"Customer requested cancellation\"\n      : $json.cancel_reason === \"fraud\"\n        ? \"Fraudulent order\"\n        : $json.cancel_reason === \"inventory\"\n          ? \"Inventory unavailable\"\n          : $json.cancel_reason === \"declined\"\n            ? \"Payment declined\"\n            : $json.cancel_reason\n  )\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -368,
+        -640
+      ],
+      "id": "4a0a4599-3f00-4178-9c80-87a7bbad4492",
+      "name": "Format Cancellation Alert"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "76e7bc6f-7bc7-4341-adb0-17452ee91600",
+              "name": "event_type",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.event_type}}",
+              "type": "string"
+            },
+            {
+              "id": "0a5c1098-49db-4b3b-9764-59d7c9b10157",
+              "name": "order_number",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.order_number}}",
+              "type": "string"
+            },
+            {
+              "id": "299f21d3-a58e-4298-b25f-45e2e6d76294",
+              "name": "customer_name",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.customer_name}}",
+              "type": "string"
+            },
+            {
+              "id": "4a7e3556-e414-4016-95a2-3c0c60aa49d4",
+              "name": "customer_email",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.customer_email}}",
+              "type": "string"
+            },
+            {
+              "id": "dbaca214-71cf-432f-a2bc-2571874cc204",
+              "name": "amount",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.amount}}",
+              "type": "string"
+            },
+            {
+              "id": "afec17be-a629-4ec2-9563-592188c191cb",
+              "name": "currency",
+              "value": "={{$node[\"Prepare Cancellation Data\"].json.currency}}",
+              "type": "string"
+            },
+            {
+              "id": "07a73941-5d1e-4d21-80ae-9ed91c03063e",
+              "name": "cancel_reason",
+              "value": "={{\n  $node[\"Prepare Cancellation Data\"].json.cancel_reason === \"customer\"\n    ? \"Customer requested cancellation\"\n    : $node[\"Prepare Cancellation Data\"].json.cancel_reason === \"fraud\"\n      ? \"Fraudulent order\"\n      : $node[\"Prepare Cancellation Data\"].json.cancel_reason === \"inventory\"\n        ? \"Inventory unavailable\"\n        : $node[\"Prepare Cancellation Data\"].json.cancel_reason === \"declined\"\n          ? \"Payment declined\"\n          : $node[\"Prepare Cancellation Data\"].json.cancel_reason\n}}",
+              "type": "string"
+            },
+            {
+              "id": "d354d7b4-1615-4913-a1fb-08d17a17ace0",
+              "name": "cancelled_at",
+              "value": "={{\n  DateTime.fromISO(\n    $node[\"Prepare Cancellation Data\"].json.cancelled_at\n  ).toFormat(\"MMM dd, yyyy, hh:mm a\")\n}}",
+              "type": "string"
+            },
+            {
+              "id": "12676070-8195-45b2-8f19-a256177f228d",
+              "name": "logged_at",
+              "value": "={{\n  $now.toFormat(\"MMM dd, yyyy, hh:mm a\")\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        48,
+        -640
+      ],
+      "id": "58664e8d-47f4-46b9-aefc-d9840466b4bf",
+      "name": "Prepare Cancellation Audit"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA",
+          "mode": "list",
+          "cachedResultName": "Shopify Exception Management Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Cancellations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Event Type": "={{$json.event_type}}",
+            "Order Number": "={{$json.order_number}}",
+            "Customer Name": "={{$json.customer_name}}",
+            "Customer Email": "={{ $json.customer_email }}",
+            "Amount": "={{ $json.amount }}",
+            "Currency": "={{ $json.currency }}",
+            "Cancellation Reason": "={{ $json.cancel_reason }}",
+            "Cancelled At": "={{ $json.cancelled_at }}",
+            "Logged At": "={{ $json.logged_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Event Type",
+              "displayName": "Event Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Number",
+              "displayName": "Order Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Email",
+              "displayName": "Customer Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cancellation Reason",
+              "displayName": "Cancellation Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cancelled At",
+              "displayName": "Cancelled At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Logged At",
+              "displayName": "Logged At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        256,
+        -640
+      ],
+      "id": "db02fe6f-8cf8-4a59-babc-605429ad7b1e",
+      "name": "Log Cancellation Event",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify/refund-created",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -784,
+        -288
+      ],
+      "id": "5a76ca71-2d49-4577-b8ff-8f8bd387e895",
+      "name": "Refund Created",
+      "webhookId": "f5aad158-7146-4b99-b3ef-44e6f9868d1f"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify/order-cancelled",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -784,
+        -640
+      ],
+      "id": "8ea0ab57-5a2c-4d96-81aa-0bff60139c11",
+      "name": "Cancellation Created",
+      "webhookId": "d483c9ce-0f32-430c-9622-67b2b1ec44e7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c15b4194-d322-4608-bd4e-fe326b5ab7e8",
+              "name": "event_type",
+              "value": "Refund Created",
+              "type": "string"
+            },
+            {
+              "id": "f98c0a92-be0a-45c8-8727-ae87d88d3adf",
+              "name": "refund_id",
+              "value": "={{$json.body.id}}",
+              "type": "string"
+            },
+            {
+              "id": "32336345-6301-44a5-93d3-43f0b9804b18",
+              "name": "order_id",
+              "value": "={{$json.body.order_id}}",
+              "type": "string"
+            },
+            {
+              "id": "7236abe4-5f5e-476c-9088-88df6e28d60b",
+              "name": "refund_amount",
+              "value": "={{$json.body.transactions[0].amount}}",
+              "type": "string"
+            },
+            {
+              "id": "e206f437-70f1-45b0-9dda-02c4a8b41707",
+              "name": "currency",
+              "value": "={{$json.body.transactions[0].currency}}",
+              "type": "string"
+            },
+            {
+              "id": "e227b1fb-442f-444b-9243-e669bc58b192",
+              "name": "refund_reason",
+              "value": "={{$json.body.note}}",
+              "type": "string"
+            },
+            {
+              "id": "8a73ffed-f323-4ee1-b4a9-f7236583401f",
+              "name": "refund_status",
+              "value": "={{$json.body.transactions[0].status}}",
+              "type": "string"
+            },
+            {
+              "id": "55bcb71e-06be-49ff-8d4d-9cdfe6e6e63d",
+              "name": "refunded_at",
+              "value": "={{$json.body.processed_at}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -560,
+        -288
+      ],
+      "id": "13889bdb-776b-4132-aa67-984648135c90",
+      "name": "Prepare Refund Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/api/2026-07/graphql.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $node[\"Get Shopify Access Token\"].json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"query GetOrder($id: ID!) { order(id: $id) { id name totalPriceSet { shopMoney { amount currencyCode } } customer { firstName lastName email } } }\",\n  \"variables\": {\n    \"id\": \"gid://shopify/Order/{{$('Prepare Refund Data').item.json.order_id}}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -112,
+        -288
+      ],
+      "id": "d78922c5-83fb-4700-976a-537d111624f3",
+      "name": "Get Shopify Order Details"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ai-automation-lab-qgfio0ow.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "ada3d1003a97c67b7f9d7e8a1f85d8dd"
+            },
+            {
+              "name": "client_secret",
+              "value": "YOUR_SHOPIFY_APP_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -336,
+        -288
+      ],
+      "id": "cea6572c-d509-4c9f-bb16-7faf3cf78934",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10f92bcf-16c7-4aca-b311-24a040028517",
+              "name": "event_type",
+              "value": "={{ \"Refund Created\" }}",
+              "type": "string"
+            },
+            {
+              "id": "ea5f425e-be38-4812-8805-33c6c70b995a",
+              "name": "refund_id",
+              "value": "={{ $(\"Prepare Refund Data\").item.json.refund_id }}",
+              "type": "string"
+            },
+            {
+              "id": "9187f749-b7f6-4a50-ad43-ae949ba44ed5",
+              "name": "order_number",
+              "value": "={{ $json.data.order.name }}",
+              "type": "string"
+            },
+            {
+              "id": "ae5bcffc-c0d7-426d-bdae-2a4e08715b56",
+              "name": "customer_name",
+              "value": "={{   $json.data.order.customer.firstName + \" \" +  $json.data.order.customer.lastName}}",
+              "type": "string"
+            },
+            {
+              "id": "0fda6991-4b64-4128-90a4-c8fb205f5dc8",
+              "name": "customer_email",
+              "value": "={{ $json.data.order.customer.email }}",
+              "type": "string"
+            },
+            {
+              "id": "fa61b0ac-5e63-4768-b2e9-abe2f7f25516",
+              "name": "original_amount",
+              "value": "={{ $json.data.order.totalPriceSet.shopMoney.amount }}",
+              "type": "string"
+            },
+            {
+              "id": "36dc00ca-707d-4f9e-9a64-da1a593d95d3",
+              "name": "refund_amount",
+              "value": "={{ $(\"Prepare Refund Data\").item.json.refund_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "fe7f1a07-1d82-4d58-8bf7-b3ac24502cbe",
+              "name": "currency",
+              "value": "={{ $(\"Prepare Refund Data\").item.json.currency }}",
+              "type": "string"
+            },
+            {
+              "id": "f54cc9a5-5e51-41fb-baee-00a995c00440",
+              "name": "refund_reason",
+              "value": "={{ $(\"Prepare Refund Data\").item.json.refund_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "65c57794-fe3c-4768-aab2-9cffa0f71456",
+              "name": "refund_status",
+              "value": "={{ $(\"Prepare Refund Data\").item.json.refund_status }}",
+              "type": "string"
+            },
+            {
+              "id": "b364b0f5-b137-407a-aea5-e42d9762c3b3",
+              "name": "refund_type",
+              "value": "={{\n  Number($(\"Prepare Refund Data\").item.json.refund_amount) >=\n  Number($json.data.order.totalPriceSet.shopMoney.amount)\n    ? \"Full Refund\"\n    : \"Partial Refund\"\n}}",
+              "type": "string"
+            },
+            {
+              "id": "833fe1d8-cf5d-4b7f-871a-31dced58897e",
+              "name": "refunded_at",
+              "value": "={{\n  DateTime\n    .fromISO($(\"Prepare Refund Data\").item.json.refunded_at)\n    .toFormat(\"dd MMM yyyy, hh:mm a 'EDT'\")\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        112,
+        -288
+      ],
+      "id": "534a1715-8c5c-4123-8b3a-22c80140fea6",
+      "name": "Determine Refund Type"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ee07126-5a95-4421-836c-51c36eb3b005",
+              "name": "slack_message",
+              "value": "=={{  \"ðŸ’° *\" + $json.refund_type.toUpperCase() + \"*\\n\\n\" +  \"*Order:* \" + $json.order_number + \"\\n\" +  \"*Customer:* \" + $json.customer_name + \"\\n\" +  \"*Original Order:* \" + $json.original_amount + \" \" + $json.currency + \"\\n\" +  \"*Refund Amount:* \" + $json.refund_amount + \" \" + $json.currency + \"\\n\" +  \"*Reason:* \" +    (      $json.refund_reason === \"damaged\"        ? \"Damaged product\"        : $json.refund_reason === \"customer\"          ? \"Customer requested refund\"          : $json.refund_reason === \"fraud\"            ? \"Fraudulent order\"            : $json.refund_reason    ) +  \"\\n\" +  \"*Status:* \" +     (      $json.refund_status === \"success\"        ? \"Successful\"        : $json.refund_status    ) +  \"\\n\" +  \"*Refunded At:* \" + $json.refunded_at}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        352,
+        -432
+      ],
+      "id": "91cd3a41-b072-4e36-964d-757603aa53bb",
+      "name": "Format Refund Alert"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BQR4KVD60",
+          "mode": "list",
+          "cachedResultName": "cancelled-orders"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -160,
+        -640
+      ],
+      "id": "2d31b469-e22b-4b14-90f6-149a5c9ce441",
+      "name": "Cancellation Message",
+      "webhookId": "e7df0537-d487-4861-9097-a5e8079bf66f",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BQKTYED46",
+          "mode": "list",
+          "cachedResultName": "refund-orders"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        592,
+        -304
+      ],
+      "id": "1ec18093-7ada-4515-b94a-f37797d976eb",
+      "name": "Refund Message",
+      "webhookId": "578a40c7-f95f-441c-a653-6f8c137cdf46",
+      "credentials": {
+        "slackApi": {
+          "id": "zzee8pDB7QBfDXwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA",
+          "mode": "list",
+          "cachedResultName": "Shopify Exception Management Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 871086488,
+          "mode": "list",
+          "cachedResultName": "Refunds",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xl6kgoyLFk-fMmNha8v4bMzZoG-bYgyQDQvNxgq0fDA/edit#gid=871086488"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Event Type": "={{ $json.event_type }}",
+            "Order Number": "={{ $json.order_number }}",
+            "Customer Name": "={{ $json.customer_name }}",
+            "Customer Email": "={{ $json.customer_email }}",
+            "Currency": "={{ $json.currency }}",
+            "Original Amount": "={{ $json.original_amount }}",
+            "Refund Amount": "={{ $json.refund_amount }}",
+            "Type": "={{ $json.refund_type }}",
+            "Refund At": "={{ $json.refunded_at }}",
+            "Refund Reason": "={{ $json.refund_reason }}",
+            "Status": "={{ $json.refund_status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Event Type",
+              "displayName": "Event Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Order Number",
+              "displayName": "Order Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Email",
+              "displayName": "Customer Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Original Amount",
+              "displayName": "Original Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Refund Amount",
+              "displayName": "Refund Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Refund Reason",
+              "displayName": "Refund Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Refund At",
+              "displayName": "Refund At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        -160
+      ],
+      "id": "578ca927-2799-4d1a-803a-b277c03e5057",
+      "name": "Log Refund Event",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYAesw3uA6kIHWh2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Prepare Cancellation Data": {
+      "main": [
+        [
+          {
+            "node": "Format Cancellation Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cancellation Alert": {
+      "main": [
+        [
+          {
+            "node": "Cancellation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Cancellation Audit": {
+      "main": [
+        [
+          {
+            "node": "Log Cancellation Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancellation Created": {
+      "main": [
+        [
+          {
+            "node": "Prepare Cancellation Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refund Created": {
+      "main": [
+        [
+          {
+            "node": "Prepare Refund Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Refund Data": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Order Details": {
+      "main": [
+        [
+          {
+            "node": "Determine Refund Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Refund Type": {
+      "main": [
+        [
+          {
+            "node": "Format Refund Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Refund Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Refund Alert": {
+      "main": [
+        [
+          {
+            "node": "Refund Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancellation Message": {
+      "main": [
+        [
+          {
+            "node": "Prepare Cancellation Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fba5eb28-c4e1-4f19-aa23-e65a08e8c53c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1bcf98b7cc6154733709be71fcf4f3df5a09c5b427dc2e997beb0aee66b9d0b6"
+  },
+  "nodeGroups": [],
+  "id": "Crb1CwbP9rH5BhrY",
+  "tags": []
+}
