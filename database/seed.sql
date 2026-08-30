@@ -98,6 +98,7 @@ VALUES
     'Mechanical Keyboard',
     'MK-001',
     120.00,
+    20,
     'active'
 ),
 (
@@ -105,6 +106,7 @@ VALUES
     'USB-C Hub',
     'UCH-001',
     65.00,
+    3,
     'active'
 ),
 (
@@ -112,10 +114,10 @@ VALUES
     'Laptop Stand',
     'LS-001',
     85.00,
+    38,
     'active'
 )
 ON CONFLICT (shopify_product_id) DO NOTHING;
-
 
 -- ============================================================
 -- INVENTORY

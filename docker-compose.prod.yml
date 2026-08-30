@@ -22,7 +22,7 @@ services:
       dockerfile: ./backend/Dockerfile
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.production
     expose:
       - "8000"
     depends_on:
