@@ -34,6 +34,22 @@ def test_health():
     assert data["service"] == "ecommerce-api"
     assert data["database"] == "connected"
 
+def test_api_key_authentication():
+    valid_response = client.get(
+        "/api/v1/customers",
+        headers=API_HEADERS,
+    )
+    assert valid_response.status_code == 200
+
+    missing_key_response = client.get("/api/v1/customers")
+    assert missing_key_response.status_code == 401
+
+    invalid_key_response = client.get(
+        "/api/v1/customers",
+        headers={"X-API-Key": "wrong-key"},
+    )
+    assert invalid_key_response.status_code == 401
+
 
 def test_customers_endpoint():
     response = client.get("/api/v1/customers", headers=API_HEADERS)
