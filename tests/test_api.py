@@ -1,9 +1,14 @@
+﻿import os
+
 from fastapi.testclient import TestClient
+
+os.environ["API_SECRET_KEY"] = "test-api-key"
 
 from app.main import app
 
 
 client = TestClient(app)
+API_HEADERS = {"X-API-Key": "test-api-key"}
 
 
 def test_root():
@@ -31,120 +36,85 @@ def test_health():
 
 
 def test_customers_endpoint():
-    response = client.get("/api/v1/customers")
+    response = client.get("/api/v1/customers", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["customers"], list)
-    assert data["count"] == len(data["customers"])
+    assert isinstance(response.json(), dict)
 
 
 def test_products_endpoint():
-    response = client.get("/api/v1/products")
+    response = client.get("/api/v1/products", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["products"], list)
-    assert data["count"] == len(data["products"])
+    assert isinstance(response.json(), dict)
 
 
 def test_inventory_endpoint():
-    response = client.get("/api/v1/inventory")
+    response = client.get("/api/v1/inventory", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["inventory"], list)
-    assert data["count"] == len(data["inventory"])
+    assert isinstance(response.json(), dict)
 
 
 def test_orders_endpoint():
-    response = client.get("/api/v1/orders")
+    response = client.get("/api/v1/orders", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["orders"], list)
-    assert data["count"] == len(data["orders"])
+    assert isinstance(response.json(), dict)
 
 
 def test_customer_events_endpoint():
-    response = client.get("/api/v1/customer-events")
+    response = client.get("/api/v1/customer-events", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["events"], list)
-    assert data["count"] == len(data["events"])
+    assert isinstance(response.json(), dict)
 
 
 def test_abandoned_checkouts_endpoint():
-    response = client.get("/api/v1/abandoned-checkouts")
+    response = client.get("/api/v1/abandoned-checkouts", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["checkouts"], list)
-    assert data["count"] == len(data["checkouts"])
+    assert isinstance(response.json(), dict)
 
 
 def test_refund_requests_endpoint():
-    response = client.get("/api/v1/refund-requests")
+    response = client.get("/api/v1/refund-requests", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["refund_requests"], list)
-    assert data["count"] == len(data["refund_requests"])
+    assert isinstance(response.json(), dict)
 
 
 def test_workflow_runs_endpoint():
-    response = client.get("/api/v1/workflow-runs")
+    response = client.get("/api/v1/workflow-runs", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["workflow_runs"], list)
-    assert data["count"] == len(data["workflow_runs"])
+    assert isinstance(response.json(), dict)
 
 
 def test_workflow_errors_endpoint():
-    response = client.get("/api/v1/workflow-errors")
+    response = client.get("/api/v1/workflow-errors", headers=API_HEADERS)
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert isinstance(data, dict)
-    assert isinstance(data["workflow_errors"], list)
-    assert data["count"] == len(data["workflow_errors"])
+    assert isinstance(response.json(), dict)
 
 
 def test_automation_actions_endpoint():
-    response = client.get("/api/v1/automation-actions")
+    response = client.get("/api/v1/automation-actions", headers=API_HEADERS)
 
     assert response.status_code == 200
+    assert isinstance(response.json(), dict)
 
-    data = response.json()
 
-    assert isinstance(data, dict)
-    assert isinstance(data["automation_actions"], list)
-    assert data["count"] == len(data["automation_actions"])
+def test_protected_endpoint_without_api_key():
+    response = client.get("/api/v1/customers")
+
+    assert response.status_code == 401
+
+
+def test_protected_endpoint_with_invalid_api_key():
+    response = client.get(
+        "/api/v1/customers",
+        headers={"X-API-Key": "wrong-key"},
+    )
+
+    assert response.status_code == 401

@@ -61,16 +61,17 @@ jobs:
             -d ecommerce_platform \
             -f database/seed.sql
 
-      - name: Run API tests
-        env:
+     - name: Run API tests
+       env:
           PYTHONPATH: ${{ github.workspace }}/backend
+          API_SECRET_KEY: test-api-key
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
           POSTGRES_DB: ecommerce_platform
           POSTGRES_USER: ecommerce_app
           POSTGRES_PASSWORD: change_me
-        run: |
-          pytest tests -v
+      run: |
+        pytest tests -v
 
   docker:
     name: Docker Image Builds

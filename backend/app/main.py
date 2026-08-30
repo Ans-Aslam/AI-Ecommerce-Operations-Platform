@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+﻿from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.security import require_api_key
 
 from app.routes.health import router as health_router
 from app.routes.customers import router as customers_router
@@ -25,8 +27,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -34,17 +36,53 @@ app.add_middleware(
 )
 
 
+# Public health endpoint used by monitoring and Docker health checks
 app.include_router(health_router)
-app.include_router(customers_router)
-app.include_router(products_router)
-app.include_router(inventory_router)
-app.include_router(orders_router)
-app.include_router(customer_events_router)
-app.include_router(abandoned_checkouts_router)
-app.include_router(refund_requests_router)
-app.include_router(workflow_runs_router)
-app.include_router(workflow_errors_router)
-app.include_router(automation_actions_router)
+
+
+# Protected business API routes
+api_dependencies = [Depends(require_api_key)]
+
+app.include_router(
+    customers_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    products_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    inventory_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    orders_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    customer_events_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    abandoned_checkouts_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    refund_requests_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    workflow_runs_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    workflow_errors_router,
+    dependencies=api_dependencies,
+)
+app.include_router(
+    automation_actions_router,
+    dependencies=api_dependencies,
+)
 
 
 @app.get("/")
