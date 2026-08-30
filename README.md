@@ -1,65 +1,95 @@
-# AI E-commerce Operations Platform
+# AI E-Commerce Operations Platform
 
-Production-style e-commerce operations platform that consolidates and modernizes business automation capabilities originally developed across multiple Shopify and n8n projects.
+A production-style e-commerce operations platform that centralizes Shopify business operations, workflow automation, operational monitoring, and API-driven data access into a single system.
 
-The platform provides a centralized operations layer using **FastAPI, PostgreSQL, React, Docker, Shopify, and n8n-compatible workflow architecture**.
+The platform combines **FastAPI, PostgreSQL, React, Nginx, Docker, Shopify, and n8n** to provide a structured operations layer for modern e-commerce businesses.
+
+---
 
 ## Overview
 
-The platform is designed to support common e-commerce operations including:
+E-commerce businesses often operate across multiple disconnected systems for orders, customers, inventory, fulfillment, refunds, automation, and operational monitoring.
 
-- Order operations
+This platform consolidates those operational capabilities into one backend and dashboard architecture.
+
+It provides:
+
 - Customer management
-- Customer event tracking
-- Fulfillment monitoring
+- Product management
 - Inventory monitoring
-- Low-stock detection
-- Reorder recommendations
-- Customer segmentation
-- Abandoned checkout recovery
+- Order management
+- Customer event tracking
+- Abandoned checkout monitoring
 - Refund request management
-- Cancellation exception management
 - Workflow execution monitoring
 - Workflow error tracking
 - Automation action tracking
 - Audit logging
-- Operations dashboard visibility
+- Shopify/n8n automation integration
+- API-key protected backend endpoints
+- React operations dashboard
+- Dockerized local/deployment environment
+- Automated CI testing
+- Docker image validation
+
+---
 
 ## Architecture
 
 ```text
-                    E-commerce / Automation Sources
-                               │
-                               ▼
-                    Shopify APIs / Webhooks
-                               │
-                               ▼
-                         n8n Workflows
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │     FastAPI API     │
-                    │                     │
-                    │ Business endpoints  │
-                    │ Validation          │
-                    │ Error handling      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │     PostgreSQL      │
-                    │                     │
-                    │ Customers           │
-                    │ Products            │
-                    │ Inventory           │
-                    │ Orders              │
-                    │ Events              │
-                    │ Workflow data       │
-                    │ Automation data     │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                    React Operations Dashboard
-                               │
-                               ▼
-                         Docker Compose
+                         E-COMMERCE SOURCES
+                                |
+                                v
+                    +------------------------+
+                    | Shopify / Webhooks     |
+                    +-----------+------------+
+                                |
+                                v
+                    +------------------------+
+                    |    n8n Automation      |
+                    |------------------------|
+                    | Order Automation        |
+                    | Fulfillment Automation  |
+                    | Inventory Monitoring    |
+                    | Refund Automation       |
+                    | Daily Reporting         |
+                    | Error Handler           |
+                    +-----------+------------+
+                                |
+                                v
+                    +------------------------+
+                    |      FastAPI API        |
+                    |------------------------|
+                    | REST Endpoints          |
+                    | API Authentication      |
+                    | Business Logic          |
+                    | Validation              |
+                    | Error Handling          |
+                    +-----------+------------+
+                                |
+                                v
+                    +------------------------+
+                    |     PostgreSQL 16       |
+                    |------------------------|
+                    | Customers               |
+                    | Products                |
+                    | Inventory               |
+                    | Orders                  |
+                    | Customer Events         |
+                    | Abandoned Checkouts     |
+                    | Refund Requests         |
+                    | Workflow Runs           |
+                    | Workflow Errors         |
+                    | Automation Actions      |
+                    | Audit Logs              |
+                    +------------------------+
+
+                                ^
+                                |
+                    +-----------+------------+
+                    |     Nginx / React      |
+                    |   Operations Dashboard |
+                    +------------------------+
+                                ^
+                                |
+                             Browser
