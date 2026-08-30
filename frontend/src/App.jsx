@@ -4,6 +4,17 @@ import "./App.css";
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
+const API_KEY = import.meta.env.VITE_API_KEY || ""
+
+const apiFetch = (url, options = {}) =>
+   fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+    },
+  });
+
 function App() {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -225,15 +236,15 @@ async function loadAutomationActionDetails(actionId) {
         refundRequestsRes,
         automationActionsRes,
       ] = await Promise.all([
-        fetch(`${API_BASE}/customers`),
-        fetch(`${API_BASE}/products`),
-        fetch(`${API_BASE}/inventory`),
-        fetch(`${API_BASE}/orders`),
-        fetch(`${API_BASE}/workflow-runs`),
-        fetch(`${API_BASE}/workflow-errors`),
-        fetch(`${API_BASE}/abandoned-checkouts`),
-        fetch(`${API_BASE}/refund-requests`),
-        fetch(`${API_BASE}/automation-actions`),
+        apiFetch(`${API_BASE}/customers`),
+        apiFetch(`${API_BASE}/products`),
+        apiFetch(`${API_BASE}/inventory`),
+        apiFetch(`${API_BASE}/orders`),
+        apiFetch(`${API_BASE}/workflow-runs`),
+        apiFetch(`${API_BASE}/workflow-errors`),
+        apiFetch(`${API_BASE}/abandoned-checkouts`),
+        apiFetch(`${API_BASE}/refund-requests`),
+        apiFetch(`${API_BASE}/automation-actions`),
       ]);
 
       const responses = [

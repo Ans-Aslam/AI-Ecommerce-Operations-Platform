@@ -6,6 +6,20 @@ The platform combines **FastAPI, PostgreSQL, React, Nginx, Docker, Shopify, and 
 
 ---
 
+## Dashboard Preview
+
+### Operations Control Center
+
+![Dashboard Overview](docs/screenshots/dashboard-overview-1.png)
+
+### Orders, Workflow Errors & Refund Operations
+
+![Orders and Workflow Monitoring](docs/screenshots/dashboard-overview-2.png)
+
+### Customers, Products & Automation Actions
+
+![Customers, Products and Automation](docs/screenshots/dashboard-overview-3.png)
+
 ## Overview
 
 E-commerce businesses often operate across multiple disconnected systems for orders, customers, inventory, fulfillment, refunds, automation, and operational monitoring.

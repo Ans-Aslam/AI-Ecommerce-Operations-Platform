@@ -81,6 +81,7 @@ INSERT INTO products (
     title,
     sku,
     price,
+    inventory_quantity,
     inventory_status
 )
 VALUES
@@ -89,6 +90,7 @@ VALUES
     'Wireless Headphones',
     'WH-001',
     150.00,
+    5,
     'active'
 ),
 (
