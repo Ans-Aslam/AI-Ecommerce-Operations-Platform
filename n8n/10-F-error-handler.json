@@ -1,0 +1,67 @@
+{
+  "name": "Project 10 — F — Shopify Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -16
+      ],
+      "id": "f60f6e01-d6e3-40c9-b0c7-992ec6273a4d",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<SLACK_CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "project-10-a-order-automation"
+        },
+        "text": "=🚨 Shopify Automation Error  \n\nWorkflow: {{ $json.workflow.name }} \nWorkflow ID: {{ $json.workflow.id }}  \nExecution ID: {{ $json.execution.id }} \nExecution Mode: {{ $json.execution.mode }}  \nLast Node: {{ $json.execution.lastNodeExecuted }}  \nError: {{ $json.execution.error.message }}  \nExecution: {{ $json.execution.url }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        304,
+        -16
+      ],
+      "id": "1e9b1b59-b00c-4404-b496-9ec8b3916a80",
+      "name": "Error Alert",
+      "webhookId": "<WEBHOOKID> "
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "nodeGroups": [],
+  "tags": [
+    {
+      "name": "10.6"
+    }
+  ]
+}

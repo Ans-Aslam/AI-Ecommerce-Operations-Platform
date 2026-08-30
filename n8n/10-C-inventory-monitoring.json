@@ -1,0 +1,571 @@
+{
+  "name": "Project 10 — C — Inventory Monitoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "ebc7300e-a0c9-4fc5-a0da-c9269d1303cb",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://your-store.myshopify.com/admin/api/2026-07/products.json?limit=250&fields=id,title,variants",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Shopify-Access-Token",
+              "value": "={{ $node['Get Shopify Access Token'].json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        304,
+        -16
+      ],
+      "id": "c8c95fa3-c3c0-458c-a85e-c4493021d539",
+      "name": "Get Shopify Inventory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-store.myshopify.com/admin/oauth/access_token",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "<SHOPIFY_CLIENT_ID>"
+            },
+            {
+              "name": "client_secret",
+              "value": "<SHOPIFY_CLIENT_SECRET>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        80,
+        -16
+      ],
+      "id": "4621233a-9a67-4d4f-973e-9a4301ffec72",
+      "name": "Get Shopify Access Token"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "products",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "dcd16920-d36c-4b41-b026-7df3187842ce",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nfor (const item of $input.all()) {\n  const product = item.json;\n\n  for (const variant of product.variants || []) {\n    output.push({\n      json: {\n        product_id: product.id,\n        product_title: product.title,\n        variant_id: variant.id,\n        variant_title: variant.title,\n        sku: variant.sku,\n        inventory_item_id: variant.inventory_item_id,\n        inventory_quantity: variant.inventory_quantity,\n        inventory_management: variant.inventory_management\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -16
+      ],
+      "id": "59c93dd8-a9a4-4257-821e-73a54a3bd155",
+      "name": "Prepare Variant Inventory Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const LOW_THRESHOLD = 5;\nconst CRITICAL_THRESHOLD = 2;\n\nreturn $input.all().map(item => {\n  const data = item.json;\n  const quantity = Number(data.inventory_quantity ?? 0);\n\n  let status;\n\n  if (data.inventory_management === null) {\n    status = 'NOT TRACKED';\n  } else if (quantity <= CRITICAL_THRESHOLD) {\n    status = 'CRITICAL';\n  } else if (quantity <= LOW_THRESHOLD) {\n    status = 'LOW';\n  } else {\n    status = 'HEALTHY';\n  }\n\n  return {\n    json: {\n      ...data,\n      inventory_quantity: quantity,\n      inventory_status: status\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        -16
+      ],
+      "id": "74451a5d-ad6a-4997-8f92-100f0abef98e",
+      "name": "Classify Inventory Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4dce6c11-779f-4df9-9a5a-580a27c261bd",
+              "leftValue": "={{ $json.inventory_status }}",
+              "rightValue": "HEALTHY",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        -16
+      ],
+      "id": "7b4e0819-5550-46e7-bf4d-d02bc3f45177",
+      "name": "Filter Actionable Inventory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "CRITICAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "9bc29e06-3269-4a69-9a10-126bfebe0248"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Critical"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e481e88f-56f9-4e7e-bb34-1d5d5d4267ba",
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "LOW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Low"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d3648a4f-fa56-4c6d-8bd7-23d9d2872f8f",
+                    "leftValue": "={{ $json.inventory_status }}",
+                    "rightValue": "NOT TRACKED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Tracked"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1504,
+        -240
+      ],
+      "id": "e52c811b-2770-42e6-88ff-31038d5f2c90",
+      "name": "Separate Inventory Alerts"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1840,
+        -320
+      ],
+      "id": "f8e7579d-6bd0-4798-a5a1-a7973e8bdc7f",
+      "name": "Merge Inventory Results"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet critical = 0;\nlet low = 0;\nlet notTracked = 0;\nlet totalActionable = items.length;\nlet totalStock = 0;\n\nfor (const item of items) {\n  const data = item.json;\n\n  totalStock += Number(data.inventory_quantity || 0);\n\n  if (data.inventory_status === 'CRITICAL') {\n    critical++;\n  } else if (data.inventory_status === 'LOW') {\n    low++;\n  } else if (data.inventory_status === 'NOT TRACKED') {\n    notTracked++;\n  }\n}\n\nreturn [\n  {\n    json: {\n      report_date: new Date().toISOString().split('T')[0],\n      total_actionable_items: totalActionable,\n      critical_items: critical,\n      low_items: low,\n      not_tracked_items: notTracked,\n      actionable_stock_units: totalStock\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        -304
+      ],
+      "id": "414d187d-ef85-4852-bfb6-76764ced5a61",
+      "name": "Build Inventory Summary"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nconst reportDate = item.report_date;\nconst totalActionable = item.total_actionable_items;\nconst critical = item.critical_items;\nconst low = item.low_items;\nconst notTracked = item.not_tracked_items;\nconst actionableUnits = item.actionable_stock_units;\n\nlet priority = 'NORMAL';\n\nif (critical > 0) {\n  priority = 'HIGH';\n} else if (low > 0 || notTracked > 0) {\n  priority = 'MEDIUM';\n}\n\nconst slack_message = `📦 *SHOPIFY INVENTORY MONITORING REPORT*\n\n*Report Date:* ${reportDate}\n\n━━━━━━━━━━━━━━━━━━━━\n\n🚨 *INVENTORY REQUIRING ATTENTION*\n\n• Critical Stock: *${critical} items*\n• Low Stock: *${low} items*\n• Not Tracked: *${notTracked} items*\n\n*Total Actionable Items:* ${totalActionable}\n\n━━━━━━━━━━━━━━━━━━━━\n\n📊 *STOCK OVERVIEW*\n\n• Available Units: *${actionableUnits}*\n• Reorder Priority: *${priority}*\n\n━━━━━━━━━━━━━━━━━━━━\n\n🔧 *RECOMMENDED ACTION*\n\nPlease review the critical and low-stock items and initiate replenishment where required.\n\nNot Tracked items should be reviewed to ensure inventory monitoring is properly configured.`;\n\nreturn [\n  {\n    json: {\n      report_date: reportDate,\n      total_actionable_items: totalActionable,\n      critical_items: critical,\n      low_items: low,\n      not_tracked_items: notTracked,\n      actionable_stock_units: actionableUnits,\n      reorder_priority: priority,\n      slack_message: slack_message\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        -496
+      ],
+      "id": "d6c8d8a1-c3be-4da6-8ab6-e1485579f008",
+      "name": "Build Professional Inventory Alert1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "<SLACK_CHANNEL_ID>",
+          "mode": "list",
+          "cachedResultName": "project-10-a-order-automation"
+        },
+        "text": "={{ $json.slack_message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        2480,
+        -496
+      ],
+      "id": "bdc5f7b8-99e8-4875-b6d8-a86d5d4989f7",
+      "name": "Send Inventory Alert",
+      "webhookId": "<WEBHOOKID> "
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<GOOGLE_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Project 10 — Shopify Operations Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 5393709,
+          "mode": "list",
+          "cachedResultName": "Inventory Audit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit#gid=5393709"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Report Date": "={{$json.report_date}}",
+            "Total Actionable Items": "={{$json.total_actionable_items}}",
+            "Critical Items": "={{$json.critical_items}}",
+            "Low Items": "={{$json.low_items}}",
+            "Not Tracked Items": "={{$json.not_tracked_items}}",
+            "Actionable Stock Units": "={{$json.actionable_stock_units}}",
+            "Reorder Priority": "={{ $json.critical_items > 0 ? 'HIGH' : ($json.low_items > 0 || $json.not_tracked_items > 0 ? 'MEDIUM' : 'NORMAL') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Report Date",
+              "displayName": "Report Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Actionable Items",
+              "displayName": "Total Actionable Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Critical Items",
+              "displayName": "Critical Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Low Items",
+              "displayName": "Low Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Not Tracked Items",
+              "displayName": "Not Tracked Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Actionable Stock Units",
+              "displayName": "Actionable Stock Units",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reorder Priority",
+              "displayName": "Reorder Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2288,
+        -160
+      ],
+      "id": "e9d28c0c-e698-462a-bca5-8d21638a8fc7",
+      "name": "Inventory Audit Log"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Access Token": {
+      "main": [
+        [
+          {
+            "node": "Get Shopify Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shopify Inventory": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Prepare Variant Inventory Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Variant Inventory Data": {
+      "main": [
+        [
+          {
+            "node": "Classify Inventory Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Inventory Status": {
+      "main": [
+        [
+          {
+            "node": "Filter Actionable Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Actionable Inventory": {
+      "main": [
+        [
+          {
+            "node": "Separate Inventory Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separate Inventory Alerts": {
+      "main": [
+        [
+          {
+            "node": "Merge Inventory Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Inventory Results",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge Inventory Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Inventory Results": {
+      "main": [
+        [
+          {
+            "node": "Build Inventory Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Inventory Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Professional Inventory Alert1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Inventory Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Professional Inventory Alert1": {
+      "main": [
+        [
+          {
+            "node": "Send Inventory Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "vFFNyT6KrCuhJBzF"
+  },
+  "nodeGroups": [],
+  "tags": [
+    {
+      "name": "10.3"
+    }
+  ]
+}
